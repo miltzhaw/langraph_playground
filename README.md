@@ -40,6 +40,14 @@ See `docs/QUICKSTART.md` for all 7 examples.
 | Failure detection rate | 100% | ✅ |
 | Database persistence | Working | ✅ |
 
+## Visualization Examples
+
+See the visualizations in action:
+
+- **[Interactive DAG Visualization](dag_interactive.html)** - Zoom, pan, drag nodes (open in browser)
+- **[Mermaid Diagram](dag_visualization.md)** - Embedded graph format for documentation
+- **[Summary Table](dag_summary.md)** - Event counts and causal edges by type
+
 ## Architecture
 
 ```
