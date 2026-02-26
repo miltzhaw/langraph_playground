@@ -29,6 +29,23 @@ docker exec spectra-app python examples/06_ablation_study.py
 
 # Example 7: Store in PostgreSQL
 docker exec spectra-app python examples/07_store_in_postgres.py
+
+# Example 8: Visualize DAG (Interactive & Static)
+docker exec spectra-app python examples/08_visualize.py
+```
+
+## View Interactive Visualization
+
+After running example 08, view the beautiful interactive DAG:
+
+```bash
+# Copy HTML to local machine
+docker cp spectra-app:/app/dag_interactive.html ./
+
+# Open in browser
+open dag_interactive.html  # macOS
+xdg-open dag_interactive.html  # Linux
+start dag_interactive.html  # Windows
 ```
 
 ## Verify Database

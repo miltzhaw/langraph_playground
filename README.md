@@ -104,6 +104,22 @@ docker exec spectra-app python examples/04_reconstruct.py
 ```
 Output: 9 events, 8 causal edges, DAG visualization
 
+### Visualize DAG (Interactive & Static)
+```bash
+docker exec spectra-app python examples/08_visualize.py
+```
+Output: 4 visualization formats:
+- **dag_interactive.html** - Interactive visualization (zoom, pan, drag)
+- **dag_visualization.dot** - Graphviz format (publication-quality PNG/PDF)
+- **dag_visualization.md** - Mermaid diagram (embed in GitHub/markdown)
+- **dag_summary.md** - Summary tables
+
+Then view the interactive visualization:
+```bash
+docker cp spectra-app:/app/dag_interactive.html ./
+open dag_interactive.html  # macOS / xdg-open for Linux / start for Windows
+```
+
 ### Store in PostgreSQL
 ```bash
 docker exec spectra-app python examples/07_store_in_postgres.py

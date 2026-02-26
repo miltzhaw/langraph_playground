@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPECTRA - Causal DAG Visualization</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style type="text/css">
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #network {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .info {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 SPECTRA - Causal DAG Visualization</h1>
+        
+        <div class="info">
+            <strong>Events:</strong> 9 | 
+            <strong>Causal Edges:</strong> 8 |
+            <strong>Agents:</strong> agent_a, agent_b, agent_c
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #E8F4F8;"></div>
+                <span>Reasoning Step</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFE0B2;"></div>
+                <span>Goal Delegated</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #F8BBD0;"></div>
+                <span>Tool Invoked</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFCDD2;"></div>
+                <span>Goal Failed</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #C8E6C9;"></div>
+                <span>Goal Completed</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="zoomIn()">🔍 Zoom In</button>
+            <button onclick="zoomOut()">🔍 Zoom Out</button>
+            <button onclick="fitToScreen()">📐 Fit Screen</button>
+            <button onclick="downloadPNG()">💾 Download PNG</button>
+        </div>
+        
+        <div id="network"></div>
+    </div>
+
+    <script type="text/javascript">
+        var nodes = new vis.DataSet([{"id": "e5d55c0c-6f40-480c-9d50-d3411bf9d277", "label": "REASONING_STEP\nagent_a\n(e5d55c)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Orchestrator: init\",\n  \"state_keys\": []\n}", "font": {"size": 12}}, {"id": "5024a870-de73-4070-a59d-9a95b5c555c3", "label": "GOAL_DELEGATED\nagent_a\n(5024a8)", "color": "#FFE0B2", "title": "{\n  \"from\": \"agent_a\",\n  \"to\": \"agent_b\",\n  \"task\": \"retrieve_docs\"\n}", "font": {"size": 12}}, {"id": "49bc24cf-81c3-40ba-b40b-b56ea41a88ea", "label": "REASONING_STEP\nagent_b\n(49bc24)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Intermediate: received task\",\n  \"state_keys\": [\n    \"agent_a_completed\",\n    \"delegated_to\",\n    \"task\"\n  ]\n}", "font": {"size": 12}}, {"id": "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f", "label": "GOAL_DELEGATED\nagent_b\n(830df0)", "color": "#FFE0B2", "title": "{\n  \"from\": \"agent_b\",\n  \"to\": \"agent_c\",\n  \"task\": \"search_database\"\n}", "font": {"size": 12}}, {"id": "997f6ab8-1341-45be-bb92-53f746ee1205", "label": "REASONING_STEP\nagent_c\n(997f6a)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Worker: received task\",\n  \"state_keys\": [\n    \"agent_a_completed\",\n    \"delegated_to\",\n    \"task\",\n    \"agent_b_completed\"\n  ]\n}", "font": {"size": 12}}, {"id": "b837916f-fd34-46f3-874b-313ba8a54430", "label": "REASONING_STEP\nagent_c\n(b83791)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Search database\",\n  \"state_keys\": [\n    \"agent_a_completed\",\n    \"delegated_to\",\n    \"task\",\n    \"agent_b_completed\",\n    \"agent_c_completed\"\n  ]\n}", "font": {"size": 12}}, {"id": "901ec077-42c2-4fa4-9f77-266b8084a273", "label": "REASONING_STEP\nagent_c\n(901ec0)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Return result\",\n  \"state_keys\": [\n    \"agent_a_completed\",\n    \"delegated_to\",\n    \"task\",\n    \"agent_b_completed\",\n    \"agent_c_completed\"\n  ]\n}", "font": {"size": 12}}, {"id": "e6165139-df35-46e4-a642-e11715ad1d98", "label": "REASONING_STEP\nagent_b\n(e61651)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Aggregate results\",\n  \"state_keys\": [\n    \"agent_a_completed\",\n    \"delegated_to\",\n    \"task\",\n    \"agent_b_completed\",\n    \"agent_c_completed\"\n  ]\n}", "font": {"size": 12}}, {"id": "eee234b9-e625-4ea3-8623-992ae643c346", "label": "REASONING_STEP\nagent_a\n(eee234)", "color": "#E8F4F8", "title": "{\n  \"description\": \"Final processing\",\n  \"state_keys\": [\n    \"agent_a_completed\",\n    \"delegated_to\",\n    \"task\",\n    \"agent_b_completed\",\n    \"agent_c_completed\"\n  ]\n}", "font": {"size": 12}}]);
+        var edges = new vis.DataSet([{"from": "5024a870-de73-4070-a59d-9a95b5c555c3", "to": "eee234b9-e625-4ea3-8623-992ae643c346", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "997f6ab8-1341-45be-bb92-53f746ee1205", "to": "b837916f-fd34-46f3-874b-313ba8a54430", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "49bc24cf-81c3-40ba-b40b-b56ea41a88ea", "to": "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f", "to": "997f6ab8-1341-45be-bb92-53f746ee1205", "label": "delegation", "color": "#FF6B6B", "arrows": "to", "font": {"size": 10}}, {"from": "5024a870-de73-4070-a59d-9a95b5c555c3", "to": "49bc24cf-81c3-40ba-b40b-b56ea41a88ea", "label": "delegation", "color": "#FF6B6B", "arrows": "to", "font": {"size": 10}}, {"from": "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f", "to": "e6165139-df35-46e4-a642-e11715ad1d98", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "e5d55c0c-6f40-480c-9d50-d3411bf9d277", "to": "5024a870-de73-4070-a59d-9a95b5c555c3", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "b837916f-fd34-46f3-874b-313ba8a54430", "to": "901ec077-42c2-4fa4-9f77-266b8084a273", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}]);
+
+        var container = document.getElementById('network');
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        var options = {
+            physics: {
+                enabled: true,
+                stabilization: {
+                    iterations: 200
+                }
+            },
+            nodes: {
+                font: {
+                    size: 14,
+                    color: '#333'
+                },
+                borderWidth: 2,
+                borderWidthSelected: 3
+            },
+            edges: {
+                smooth: {
+                    type: 'continuous'
+                },
+                arrows: {
+                    to: {
+                        enabled: true,
+                        scaleFactor: 1.2
+                    }
+                }
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+
+        function zoomIn() {
+            var scale = network.getScale();
+            network.setOptions({ physics: false });
+            network.moveTo({ scale: scale * 1.2 });
+        }
+
+        function zoomOut() {
+            var scale = network.getScale();
+            network.setOptions({ physics: false });
+            network.moveTo({ scale: scale / 1.2 });
+        }
+
+        function fitToScreen() {
+            network.fit({ animation: true });
+        }
+
+        function downloadPNG() {
+            var canvas = network.canvas.canvas;
+            var link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = 'dag_visualization.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+
+digraph CausalDAG {
+    rankdir=TB;
+    bgcolor=white;
+    node [shape=box, style=filled, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+        "e5d55c0c-6f40-480c-9d50-d3411bf9d277" [label="REASONING_STEP\n(e5d55c0c)", fillcolor="#E8F4F8"];
+    "5024a870-de73-4070-a59d-9a95b5c555c3" [label="GOAL_DELEGATED\n(5024a870)", fillcolor="#FFE0B2"];
+    "eee234b9-e625-4ea3-8623-992ae643c346" [label="REASONING_STEP\n(eee234b9)", fillcolor="#E8F4F8"];
+    "49bc24cf-81c3-40ba-b40b-b56ea41a88ea" [label="REASONING_STEP\n(49bc24cf)", fillcolor="#E8F4F8"];
+    "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f" [label="GOAL_DELEGATED\n(830df0dc)", fillcolor="#FFE0B2"];
+    "e6165139-df35-46e4-a642-e11715ad1d98" [label="REASONING_STEP\n(e6165139)", fillcolor="#E8F4F8"];
+    "997f6ab8-1341-45be-bb92-53f746ee1205" [label="REASONING_STEP\n(997f6ab8)", fillcolor="#E8F4F8"];
+    "b837916f-fd34-46f3-874b-313ba8a54430" [label="REASONING_STEP\n(b837916f)", fillcolor="#E8F4F8"];
+    "901ec077-42c2-4fa4-9f77-266b8084a273" [label="REASONING_STEP\n(901ec077)", fillcolor="#E8F4F8"];
+    
+        "5024a870-de73-4070-a59d-9a95b5c555c3" -> "eee234b9-e625-4ea3-8623-992ae643c346" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "997f6ab8-1341-45be-bb92-53f746ee1205" -> "b837916f-fd34-46f3-874b-313ba8a54430" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "49bc24cf-81c3-40ba-b40b-b56ea41a88ea" -> "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f" -> "997f6ab8-1341-45be-bb92-53f746ee1205" [label="delegation", color="#FF6B6B", penwidth=2.0];
+    "5024a870-de73-4070-a59d-9a95b5c555c3" -> "49bc24cf-81c3-40ba-b40b-b56ea41a88ea" [label="delegation", color="#FF6B6B", penwidth=2.0];
+    "830df0dc-8b62-41ca-9eaa-f991bd1e6d3f" -> "e6165139-df35-46e4-a642-e11715ad1d98" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "e5d55c0c-6f40-480c-9d50-d3411bf9d277" -> "5024a870-de73-4070-a59d-9a95b5c555c3" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "b837916f-fd34-46f3-874b-313ba8a54430" -> "901ec077-42c2-4fa4-9f77-266b8084a273" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+}
