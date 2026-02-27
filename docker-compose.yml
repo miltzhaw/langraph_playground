@@ -1,12 +1,21 @@
-version: '3.8'
-
 services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: spectra-ollama
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+
   postgres:
     image: postgres:15-alpine
+    container_name: spectra-postgres
     environment:
       POSTGRES_USER: spectra
       POSTGRES_PASSWORD: spectra_dev
-      POSTGRES_DB: spectra_db
+      POSTGRES_DB: spectra
     ports:
       - "5432:5432"
     volumes:
@@ -22,15 +31,16 @@ services:
     build: .
     container_name: spectra-app
     depends_on:
-      postgres:
-        condition: service_healthy
+      - ollama
+      - postgres
     environment:
       POSTGRES_USER: spectra
       POSTGRES_PASSWORD: spectra_dev
-      POSTGRES_DB: spectra_db
+      POSTGRES_DB: spectra
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: mistral
     volumes:
       - .:/app
       - /app/__pycache__
@@ -40,4 +50,5 @@ services:
     tty: true
 
 volumes:
+  ollama_data:
   postgres_data:
