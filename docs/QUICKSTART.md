@@ -276,3 +276,56 @@ Fills gaps in disconnected components using timestamp proximity.
 Initial evaluation demonstrates that **semantic causal trace reconstruction is feasible and effective** for LLM-based multi-agent systems. The formal model maps to working implementation, minimal telemetry requirements are quantified, and failure detection works in practice.
 
 These results validate the core claims of the SPECTRA proposal and provide a foundation for scaled evaluation and deployment.
+
+
+## Phase 3: Realistic Scenarios (NEW!)
+
+### Setup Mistral LLM
+```bash
+# Start services
+docker-compose up
+
+# Download Mistral (one-time, takes ~5 minutes)
+docker exec spectra-app ollama pull mistral
+
+# Verify it worked
+docker exec spectra-app ollama list
+```
+
+### Run Realistic Scenario with Visualization
+```bash
+# Example 11: Full realistic scenario with Mistral + visualizations
+docker exec spectra-app python examples/11_realistic_with_visualization.py
+
+# This generates:
+# - realistic_dag_interactive.html (interactive visualization)
+# - realistic_dag.dot (Graphviz format)
+# - realistic_dag.md (Mermaid diagram)
+# - realistic_dag_summary.md (event/edge statistics)
+```
+
+### View Interactive Visualization
+```bash
+# Copy to local machine
+docker cp spectra-app:/app/realistic_dag_interactive.html ./
+
+# Open in browser
+open realistic_dag_interactive.html  # macOS
+xdg-open realistic_dag_interactive.html  # Linux
+start realistic_dag_interactive.html  # Windows
+```
+
+You'll see:
+- 4 agents (coordinator, analyzer, summarizer, classifier)
+- 17 semantic events with full details
+- 13 causal edges showing the execution flow
+- Tool invocations and their results
+- Failure detection and tracing
+
+### All Phase 3 Examples
+
+| Example | Purpose | Duration |
+|---------|---------|----------|
+| 09 | Test LLM integration | ~5s |
+| 10 | Phase 1-2 vs Phase 3 comparison | ~120s |
+| 11 | Full realistic scenario with viz | ~90s |

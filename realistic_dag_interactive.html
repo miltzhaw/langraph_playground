@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPECTRA - Causal DAG Visualization</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style type="text/css">
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #network {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .info {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 SPECTRA - Causal DAG Visualization</h1>
+        
+        <div class="info">
+            <strong>Events:</strong> 17 | 
+            <strong>Causal Edges:</strong> 13 |
+            <strong>Agents:</strong> analyzer, classifier, coordinator, summarizer
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #E8F4F8;"></div>
+                <span>Reasoning Step</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFE0B2;"></div>
+                <span>Goal Delegated</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #F8BBD0;"></div>
+                <span>Tool Invoked</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFCDD2;"></div>
+                <span>Goal Failed</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #C8E6C9;"></div>
+                <span>Goal Completed</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="zoomIn()">🔍 Zoom In</button>
+            <button onclick="zoomOut()">🔍 Zoom Out</button>
+            <button onclick="fitToScreen()">📐 Fit Screen</button>
+            <button onclick="downloadPNG()">💾 Download PNG</button>
+        </div>
+        
+        <div id="network"></div>
+    </div>
+
+    <script type="text/javascript">
+        var nodes = new vis.DataSet([{"id": "25c952dc-c1f6-4800-bf44-4175af28fed1", "label": "GOAL_CREATED\ncoordinator\n(25c952)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"role\": \"orchestrator\",\n  \"tools_available\": [],\n  \"timestamp\": 1772465894.3774142\n}", "font": {"size": 12}}, {"id": "b86b032d-b666-4321-8c0e-10b5189fcd64", "label": "REASONING_STEP\ncoordinator\n(b86b03)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "f1bae972-a9bb-4726-8700-f03791dc06d5", "label": "GOAL_FAILED\ncoordinator\n(f1bae9)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_not_found\",\n  \"requested_tool\": \"search_documents\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "ec7bc6ba-c621-4811-aaeb-af3737708280", "label": "GOAL_CREATED\nanalyzer\n(ec7bc6)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"role\": \"content_analyzer\",\n  \"tools_available\": [\n    \"search_documents\"\n  ],\n  \"timestamp\": 1772465913.4197295\n}", "font": {"size": 12}}, {"id": "a054011e-a5d2-426c-b6e3-0d0b414eb3de", "label": "REASONING_STEP\nanalyzer\n(a05401)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"available_tools\": [\n    \"search_documents\"\n  ]\n}", "font": {"size": 12}}, {"id": "c685de26-ccde-4c8d-b618-e979f2ebce06", "label": "TOOL_INVOKED\nanalyzer\n(c685de)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"search_documents\",\n  \"params\": {\n    \"query\": \"machine learning\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: search_documents\\nPARAM_query: machine learning\"\n}", "font": {"size": 12}}, {"id": "3bcfeee7-3801-48ee-b138-1cef8709174c", "label": "REASONING_STEP\nanalyzer\n(3bcfee)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"search_documents\",\n  \"result_length\": 193\n}", "font": {"size": 12}}, {"id": "2e194ffc-9994-4984-879e-83e07cc792a4", "label": "GOAL_COMPLETED\nanalyzer\n(2e194f)", "color": "#C8E6C9", "title": "{\n  \"result\": \"[{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"tool_used\": \"search_documents\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "61b12ef6-42f9-4f25-8bb2-0152e102d70c", "label": "GOAL_CREATED\nsummarizer\n(61b12e)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"role\": \"summarization_specialist\",\n  \"tools_available\": [\n    \"summarize_content\"\n  ],\n  \"timestamp\": 1772465931.2105093\n}", "font": {"size": 12}}, {"id": "f94db23b-76d4-4a04-8fbf-d111f9670795", "label": "REASONING_STEP\nsummarizer\n(f94db2)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"available_tools\": [\n    \"summarize_content\"\n  ]\n}", "font": {"size": 12}}, {"id": "0ceb2779-3417-4015-8507-b44a89fe2086", "label": "TOOL_INVOKED\nsummarizer\n(0ceb27)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"summarize_content\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: summarize_content\\nPARAM_content: Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n}", "font": {"size": 12}}, {"id": "0356e671-9bfe-464f-bf84-11a16d4efb57", "label": "REASONING_STEP\nsummarizer\n(0356e6)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"summarize_content\",\n  \"result_length\": 156\n}", "font": {"size": 12}}, {"id": "d6a0a703-335a-4503-aaac-baa4b41d7f5c", "label": "GOAL_COMPLETED\nsummarizer\n(d6a0a7)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"tool_used\": \"summarize_content\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "8d61eeb0-4d9e-4405-9ca7-3963f3172228", "label": "GOAL_CREATED\nclassifier\n(8d61ee)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"role\": \"document_classifier\",\n  \"tools_available\": [\n    \"classify_document\"\n  ],\n  \"timestamp\": 1772465956.081409\n}", "font": {"size": 12}}, {"id": "d573cf25-719d-4fcb-8793-fc6033028e0e", "label": "REASONING_STEP\nclassifier\n(d573cf)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"available_tools\": [\n    \"classify_document\"\n  ]\n}", "font": {"size": 12}}, {"id": "e5336976-11d4-4d3a-8976-477e6926a665", "label": "TOOL_INVOKED\nclassifier\n(e53369)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"classify_document\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: classify_document\\nPARAM_content: Introduction to machine learning concepts (from document with id\\n\\nThis indicates that the document is rela\"\n}", "font": {"size": 12}}, {"id": "84d71364-42b2-4975-9b4a-891e7c857995", "label": "GOAL_FAILED\nclassifier\n(84d713)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_execution_error\",\n  \"tool\": \"classify_document\",\n  \"error\": \"1 validation error for classify_document\\ntext\\n  Field required [type=missing, input_value={'content': 'Introduction...(from document with id'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"status\": \"failed\"\n}", "font": {"size": 12}}]);
+        var edges = new vis.DataSet([{"from": "25c952dc-c1f6-4800-bf44-4175af28fed1", "to": "b86b032d-b666-4321-8c0e-10b5189fcd64", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "0ceb2779-3417-4015-8507-b44a89fe2086", "to": "0356e671-9bfe-464f-bf84-11a16d4efb57", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "8d61eeb0-4d9e-4405-9ca7-3963f3172228", "to": "d573cf25-719d-4fcb-8793-fc6033028e0e", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "d573cf25-719d-4fcb-8793-fc6033028e0e", "to": "e5336976-11d4-4d3a-8976-477e6926a665", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "f94db23b-76d4-4a04-8fbf-d111f9670795", "to": "0ceb2779-3417-4015-8507-b44a89fe2086", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "a054011e-a5d2-426c-b6e3-0d0b414eb3de", "to": "c685de26-ccde-4c8d-b618-e979f2ebce06", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "ec7bc6ba-c621-4811-aaeb-af3737708280", "to": "a054011e-a5d2-426c-b6e3-0d0b414eb3de", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "c685de26-ccde-4c8d-b618-e979f2ebce06", "to": "3bcfeee7-3801-48ee-b138-1cef8709174c", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "e5336976-11d4-4d3a-8976-477e6926a665", "to": "84d71364-42b2-4975-9b4a-891e7c857995", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "61b12ef6-42f9-4f25-8bb2-0152e102d70c", "to": "f94db23b-76d4-4a04-8fbf-d111f9670795", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "0356e671-9bfe-464f-bf84-11a16d4efb57", "to": "d6a0a703-335a-4503-aaac-baa4b41d7f5c", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "3bcfeee7-3801-48ee-b138-1cef8709174c", "to": "2e194ffc-9994-4984-879e-83e07cc792a4", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "b86b032d-b666-4321-8c0e-10b5189fcd64", "to": "f1bae972-a9bb-4726-8700-f03791dc06d5", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}]);
+
+        var container = document.getElementById('network');
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        var options = {
+            physics: {
+                enabled: true,
+                stabilization: {
+                    iterations: 200
+                }
+            },
+            nodes: {
+                font: {
+                    size: 14,
+                    color: '#333'
+                },
+                borderWidth: 2,
+                borderWidthSelected: 3
+            },
+            edges: {
+                smooth: {
+                    type: 'continuous'
+                },
+                arrows: {
+                    to: {
+                        enabled: true,
+                        scaleFactor: 1.2
+                    }
+                }
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+
+        function zoomIn() {
+            var scale = network.getScale();
+            network.setOptions({ physics: false });
+            network.moveTo({ scale: scale * 1.2 });
+        }
+
+        function zoomOut() {
+            var scale = network.getScale();
+            network.setOptions({ physics: false });
+            network.moveTo({ scale: scale / 1.2 });
+        }
+
+        function fitToScreen() {
+            network.fit({ animation: true });
+        }
+
+        function downloadPNG() {
+            var canvas = network.canvas.canvas;
+            var link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = 'dag_visualization.png';
+            link.click();
+        }
+    </script>
+</body>
+</html>

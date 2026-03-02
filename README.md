@@ -270,3 +270,70 @@ MIT License - see LICENSE file
 Leonardo Militano  
 Distributed Systems Group, Institute of Computer Science  
 Zurich University of Applied Sciences
+
+
+## Phase 3: Realistic Scenarios with LLM Agents
+
+SPECTRA now supports **realistic multi-agent workflows powered by Mistral LLM**.
+
+### What's New in Phase 3
+
+- **Real LLM Reasoning**: Agents use Mistral to decide what to do (no hardcoded logic)
+- **Actual Tool Invocation**: Tools executed based on LLM decisions
+- **Multi-Agent Coordination**: 4-agent pipeline (coordinator → analyzer → summarizer → classifier)
+- **Failure Modes**: Real errors detected and traced (e.g., tool parameter mismatches)
+- **Complete Event Tracing**: 17+ events per workflow, 13+ causal edges
+
+### Quick Start: Realistic Scenario
+```bash
+# Download Mistral model (one-time, ~5 minutes)
+docker exec spectra-app ollama pull mistral
+
+# Run realistic document analysis
+docker exec spectra-app python examples/11_realistic_with_visualization.py
+
+# View interactive visualization
+docker cp spectra-app:/app/realistic_dag_interactive.html ./
+open realistic_dag_interactive.html
+```
+
+### Realistic Scenario: Document Analysis Pipeline
+
+**Agents involved:**
+1. **Coordinator** (Orchestrator) - Receives task and coordinates analysis
+2. **Analyzer** (Content Analyzer) - Searches documents for information
+3. **Summarizer** (Summarization Specialist) - Creates concise summaries
+4. **Classifier** (Document Classifier) - Categorizes document content
+
+**Execution flow:**
+```
+Coordinator asks task
+    ↓
+Analyzer searches documents (TOOL_INVOKED: search_documents)
+    ↓
+Summarizer summarizes results (TOOL_INVOKED: summarize_content)
+    ↓
+Classifier categorizes (TOOL_INVOKED: classify_document, may fail)
+    ↓
+Results flow back with full causal trace
+```
+
+**Example output:**
+- 17 semantic events collected
+- 13 causal edges reconstructed
+- 3 successful tool invocations
+- 2 goal failures (realistic error handling)
+- Full DAG visualization generated
+
+### Comparing Synthetic vs Realistic
+
+| Aspect | Synthetic (Phase 1-2) | Realistic (Phase 3) |
+|--------|----------------------|-------------------|
+| LLM reasoning | None (hardcoded) | ✅ Mistral LLM |
+| Tool invocation | Injected | ✅ LLM-driven |
+| Decision logic | Predetermined | ✅ Dynamic |
+| Failure modes | Artificial | ✅ Realistic |
+| Event count | 5-10 per scenario | 15-20+ per scenario |
+| Causal edges | 3-8 | 10-15+ |
+| Execution time | <1s | 60-90s (LLM inference) |
+| Production relevance | Proof-of-concept | ✅ High |

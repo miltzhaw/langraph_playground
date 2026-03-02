@@ -1,0 +1,39 @@
+
+digraph CausalDAG {
+    rankdir=TB;
+    bgcolor=white;
+    node [shape=box, style=filled, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+    
+        "ec7bc6ba-c621-4811-aaeb-af3737708280" [label="GOAL_CREATED\n(ec7bc6ba)", fillcolor="#C8E6C9"];
+    "a054011e-a5d2-426c-b6e3-0d0b414eb3de" [label="REASONING_STEP\n(a054011e)", fillcolor="#E8F4F8"];
+    "c685de26-ccde-4c8d-b618-e979f2ebce06" [label="TOOL_INVOKED\n(c685de26)", fillcolor="#F8BBD0"];
+    "3bcfeee7-3801-48ee-b138-1cef8709174c" [label="REASONING_STEP\n(3bcfeee7)", fillcolor="#E8F4F8"];
+    "2e194ffc-9994-4984-879e-83e07cc792a4" [label="GOAL_COMPLETED\n(2e194ffc)", fillcolor="#C8E6C9"];
+    "8d61eeb0-4d9e-4405-9ca7-3963f3172228" [label="GOAL_CREATED\n(8d61eeb0)", fillcolor="#C8E6C9"];
+    "d573cf25-719d-4fcb-8793-fc6033028e0e" [label="REASONING_STEP\n(d573cf25)", fillcolor="#E8F4F8"];
+    "e5336976-11d4-4d3a-8976-477e6926a665" [label="TOOL_INVOKED\n(e5336976)", fillcolor="#F8BBD0"];
+    "84d71364-42b2-4975-9b4a-891e7c857995" [label="GOAL_FAILED\n(84d71364)", fillcolor="#FFCDD2"];
+    "25c952dc-c1f6-4800-bf44-4175af28fed1" [label="GOAL_CREATED\n(25c952dc)", fillcolor="#C8E6C9"];
+    "b86b032d-b666-4321-8c0e-10b5189fcd64" [label="REASONING_STEP\n(b86b032d)", fillcolor="#E8F4F8"];
+    "f1bae972-a9bb-4726-8700-f03791dc06d5" [label="GOAL_FAILED\n(f1bae972)", fillcolor="#FFCDD2"];
+    "61b12ef6-42f9-4f25-8bb2-0152e102d70c" [label="GOAL_CREATED\n(61b12ef6)", fillcolor="#C8E6C9"];
+    "f94db23b-76d4-4a04-8fbf-d111f9670795" [label="REASONING_STEP\n(f94db23b)", fillcolor="#E8F4F8"];
+    "0ceb2779-3417-4015-8507-b44a89fe2086" [label="TOOL_INVOKED\n(0ceb2779)", fillcolor="#F8BBD0"];
+    "0356e671-9bfe-464f-bf84-11a16d4efb57" [label="REASONING_STEP\n(0356e671)", fillcolor="#E8F4F8"];
+    "d6a0a703-335a-4503-aaac-baa4b41d7f5c" [label="GOAL_COMPLETED\n(d6a0a703)", fillcolor="#C8E6C9"];
+    
+        "25c952dc-c1f6-4800-bf44-4175af28fed1" -> "b86b032d-b666-4321-8c0e-10b5189fcd64" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "0ceb2779-3417-4015-8507-b44a89fe2086" -> "0356e671-9bfe-464f-bf84-11a16d4efb57" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "8d61eeb0-4d9e-4405-9ca7-3963f3172228" -> "d573cf25-719d-4fcb-8793-fc6033028e0e" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "d573cf25-719d-4fcb-8793-fc6033028e0e" -> "e5336976-11d4-4d3a-8976-477e6926a665" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "f94db23b-76d4-4a04-8fbf-d111f9670795" -> "0ceb2779-3417-4015-8507-b44a89fe2086" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "a054011e-a5d2-426c-b6e3-0d0b414eb3de" -> "c685de26-ccde-4c8d-b618-e979f2ebce06" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "ec7bc6ba-c621-4811-aaeb-af3737708280" -> "a054011e-a5d2-426c-b6e3-0d0b414eb3de" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "c685de26-ccde-4c8d-b618-e979f2ebce06" -> "3bcfeee7-3801-48ee-b138-1cef8709174c" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "e5336976-11d4-4d3a-8976-477e6926a665" -> "84d71364-42b2-4975-9b4a-891e7c857995" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "61b12ef6-42f9-4f25-8bb2-0152e102d70c" -> "f94db23b-76d4-4a04-8fbf-d111f9670795" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "0356e671-9bfe-464f-bf84-11a16d4efb57" -> "d6a0a703-335a-4503-aaac-baa4b41d7f5c" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "3bcfeee7-3801-48ee-b138-1cef8709174c" -> "2e194ffc-9994-4984-879e-83e07cc792a4" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "b86b032d-b666-4321-8c0e-10b5189fcd64" -> "f1bae972-a9bb-4726-8700-f03791dc06d5" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+}
