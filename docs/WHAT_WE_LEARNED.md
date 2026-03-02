@@ -315,7 +315,7 @@ Can answer: "Is the multi-agent coordination correct?" ✓✓✓
 
 ## What This Means for Your Proposal
 
-### For Hasler (Research Impact)
+### Research Impact
 
 **You've proven:**
 1. ✅ Formal causal trace model works on realistic agent execution
