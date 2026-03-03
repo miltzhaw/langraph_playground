@@ -4,116 +4,315 @@
     <title>SPECTRA - Causal DAG Visualization</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style type="text/css">
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
-            background-color: #f5f5f5;
         }
-        #network {
-            width: 100%;
-            height: 800px;
-            border: 1px solid #ddd;
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
-        h1 {
-            color: #333;
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
             margin-bottom: 10px;
         }
-        .info {
-            background-color: #e3f2fd;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
         }
-        .legend {
+        
+        .content {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .sidebar h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .stat-group {
             margin-bottom: 20px;
         }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
         }
+        
         .legend-color {
-            width: 30px;
-            height: 30px;
+            width: 20px;
+            height: 20px;
             border-radius: 3px;
+            margin-right: 8px;
+            border: 1px solid #999;
+        }
+        
+        #network {
             border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            position: relative;
         }
+        
         .controls {
-            margin-bottom: 20px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
         }
+        
         button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            background-color: #2196F3;
+            padding: 8px 12px;
+            background-color: #667eea;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
         }
+        
         button:hover {
-            background-color: #1976D2;
+            background-color: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .right-sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .event-list {
+            font-size: 12px;
+        }
+        
+        .event-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .event-item:hover {
+            background: #f0f0f0;
+            transform: translateX(3px);
+        }
+        
+        .event-type {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 11px;
+        }
+        
+        .event-agent {
+            color: #666;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        .info-detail {
+            color: #666;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar, .right-sidebar {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 SPECTRA - Causal DAG Visualization</h1>
-        
-        <div class="info">
-            <strong>Events:</strong> 17 | 
-            <strong>Causal Edges:</strong> 13 |
-            <strong>Agents:</strong> analyzer, classifier, coordinator, summarizer
+        <div class="header">
+            <h1>🔍 SPECTRA - Semantic Causal DAG Visualization</h1>
+            <p>Interactive exploration of multi-agent reasoning and coordination</p>
         </div>
         
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #E8F4F8;"></div>
-                <span>Reasoning Step</span>
+        <div class="content">
+            <!-- Left Sidebar: Statistics -->
+            <div class="sidebar">
+                <h3>📊 Execution Summary</h3>
+                <div class="stat-group">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Events:</span>
+                        <span class="stat-value">17</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Causal Edges:</span>
+                        <span class="stat-value">13</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Agents:</span>
+                        <span class="stat-value">4</span>
+                    </div>
+                </div>
+                
+                <h3>📈 Event Types</h3>
+                <div class="stat-group">
+                    <div class="stat-item"><span class="stat-label">GOAL_COMPLETED:</span><span class="stat-value">2</span></div><div class="stat-item"><span class="stat-label">GOAL_CREATED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">GOAL_FAILED:</span><span class="stat-value">2</span></div><div class="stat-item"><span class="stat-label">REASONING_STEP:</span><span class="stat-value">6</span></div><div class="stat-item"><span class="stat-label">TOOL_INVOKED:</span><span class="stat-value">3</span></div>
+                </div>
+                
+                <div class="legend">
+                    <strong style="font-size: 12px;">Event Type Colors</strong>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #E8F4F8;"></div>
+                        <span>Reasoning Step</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #C8E6C9;"></div>
+                        <span>Goal Created</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFE0B2;"></div>
+                        <span>Goal Delegated</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #F8BBD0;"></div>
+                        <span>Tool Invoked</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFCDD2;"></div>
+                        <span>Goal Failed</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #B2DFDB;"></div>
+                        <span>Goal Completed</span>
+                    </div>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #FFE0B2;"></div>
-                <span>Goal Delegated</span>
+            
+            <!-- Center: Network Visualization -->
+            <div style="position: relative;">
+                <div id="network"></div>
+                <div class="controls">
+                    <button onclick="zoomIn()">🔍+ Zoom In</button>
+                    <button onclick="zoomOut()">🔍- Zoom Out</button>
+                    <button onclick="fitToScreen()">📐 Fit</button>
+                    <button onclick="resetPhysics()">🔄 Reset</button>
+                    <button onclick="downloadPNG()">💾 PNG</button>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #F8BBD0;"></div>
-                <span>Tool Invoked</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #FFCDD2;"></div>
-                <span>Goal Failed</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #C8E6C9;"></div>
-                <span>Goal Completed</span>
+            
+            <!-- Right Sidebar: Events and Details -->
+            <div class="right-sidebar">
+                <h3>📋 Event Timeline</h3>
+                <div class="event-list" id="eventList"></div>
+                
+                <div class="info-panel">
+                    <div class="info-title">ℹ️ Selected Event Details</div>
+                    <div class="info-detail" id="eventInfo">
+                        Click an event node to see details
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div class="controls">
-            <button onclick="zoomIn()">🔍 Zoom In</button>
-            <button onclick="zoomOut()">🔍 Zoom Out</button>
-            <button onclick="fitToScreen()">📐 Fit Screen</button>
-            <button onclick="downloadPNG()">💾 Download PNG</button>
-        </div>
-        
-        <div id="network"></div>
     </div>
 
     <script type="text/javascript">
-        var nodes = new vis.DataSet([{"id": "25c952dc-c1f6-4800-bf44-4175af28fed1", "label": "GOAL_CREATED\ncoordinator\n(25c952)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"role\": \"orchestrator\",\n  \"tools_available\": [],\n  \"timestamp\": 1772465894.3774142\n}", "font": {"size": 12}}, {"id": "b86b032d-b666-4321-8c0e-10b5189fcd64", "label": "REASONING_STEP\ncoordinator\n(b86b03)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "f1bae972-a9bb-4726-8700-f03791dc06d5", "label": "GOAL_FAILED\ncoordinator\n(f1bae9)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_not_found\",\n  \"requested_tool\": \"search_documents\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "ec7bc6ba-c621-4811-aaeb-af3737708280", "label": "GOAL_CREATED\nanalyzer\n(ec7bc6)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"role\": \"content_analyzer\",\n  \"tools_available\": [\n    \"search_documents\"\n  ],\n  \"timestamp\": 1772465913.4197295\n}", "font": {"size": 12}}, {"id": "a054011e-a5d2-426c-b6e3-0d0b414eb3de", "label": "REASONING_STEP\nanalyzer\n(a05401)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"available_tools\": [\n    \"search_documents\"\n  ]\n}", "font": {"size": 12}}, {"id": "c685de26-ccde-4c8d-b618-e979f2ebce06", "label": "TOOL_INVOKED\nanalyzer\n(c685de)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"search_documents\",\n  \"params\": {\n    \"query\": \"machine learning\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: search_documents\\nPARAM_query: machine learning\"\n}", "font": {"size": 12}}, {"id": "3bcfeee7-3801-48ee-b138-1cef8709174c", "label": "REASONING_STEP\nanalyzer\n(3bcfee)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"search_documents\",\n  \"result_length\": 193\n}", "font": {"size": 12}}, {"id": "2e194ffc-9994-4984-879e-83e07cc792a4", "label": "GOAL_COMPLETED\nanalyzer\n(2e194f)", "color": "#C8E6C9", "title": "{\n  \"result\": \"[{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"tool_used\": \"search_documents\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "61b12ef6-42f9-4f25-8bb2-0152e102d70c", "label": "GOAL_CREATED\nsummarizer\n(61b12e)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"role\": \"summarization_specialist\",\n  \"tools_available\": [\n    \"summarize_content\"\n  ],\n  \"timestamp\": 1772465931.2105093\n}", "font": {"size": 12}}, {"id": "f94db23b-76d4-4a04-8fbf-d111f9670795", "label": "REASONING_STEP\nsummarizer\n(f94db2)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"available_tools\": [\n    \"summarize_content\"\n  ]\n}", "font": {"size": 12}}, {"id": "0ceb2779-3417-4015-8507-b44a89fe2086", "label": "TOOL_INVOKED\nsummarizer\n(0ceb27)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"summarize_content\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: summarize_content\\nPARAM_content: Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n}", "font": {"size": 12}}, {"id": "0356e671-9bfe-464f-bf84-11a16d4efb57", "label": "REASONING_STEP\nsummarizer\n(0356e6)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"summarize_content\",\n  \"result_length\": 156\n}", "font": {"size": 12}}, {"id": "d6a0a703-335a-4503-aaac-baa4b41d7f5c", "label": "GOAL_COMPLETED\nsummarizer\n(d6a0a7)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"tool_used\": \"summarize_content\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "8d61eeb0-4d9e-4405-9ca7-3963f3172228", "label": "GOAL_CREATED\nclassifier\n(8d61ee)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"role\": \"document_classifier\",\n  \"tools_available\": [\n    \"classify_document\"\n  ],\n  \"timestamp\": 1772465956.081409\n}", "font": {"size": 12}}, {"id": "d573cf25-719d-4fcb-8793-fc6033028e0e", "label": "REASONING_STEP\nclassifier\n(d573cf)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"available_tools\": [\n    \"classify_document\"\n  ]\n}", "font": {"size": 12}}, {"id": "e5336976-11d4-4d3a-8976-477e6926a665", "label": "TOOL_INVOKED\nclassifier\n(e53369)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"classify_document\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: classify_document\\nPARAM_content: Introduction to machine learning concepts (from document with id\\n\\nThis indicates that the document is rela\"\n}", "font": {"size": 12}}, {"id": "84d71364-42b2-4975-9b4a-891e7c857995", "label": "GOAL_FAILED\nclassifier\n(84d713)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_execution_error\",\n  \"tool\": \"classify_document\",\n  \"error\": \"1 validation error for classify_document\\ntext\\n  Field required [type=missing, input_value={'content': 'Introduction...(from document with id'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"status\": \"failed\"\n}", "font": {"size": 12}}]);
-        var edges = new vis.DataSet([{"from": "25c952dc-c1f6-4800-bf44-4175af28fed1", "to": "b86b032d-b666-4321-8c0e-10b5189fcd64", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "0ceb2779-3417-4015-8507-b44a89fe2086", "to": "0356e671-9bfe-464f-bf84-11a16d4efb57", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "8d61eeb0-4d9e-4405-9ca7-3963f3172228", "to": "d573cf25-719d-4fcb-8793-fc6033028e0e", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "d573cf25-719d-4fcb-8793-fc6033028e0e", "to": "e5336976-11d4-4d3a-8976-477e6926a665", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "f94db23b-76d4-4a04-8fbf-d111f9670795", "to": "0ceb2779-3417-4015-8507-b44a89fe2086", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "a054011e-a5d2-426c-b6e3-0d0b414eb3de", "to": "c685de26-ccde-4c8d-b618-e979f2ebce06", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "ec7bc6ba-c621-4811-aaeb-af3737708280", "to": "a054011e-a5d2-426c-b6e3-0d0b414eb3de", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "c685de26-ccde-4c8d-b618-e979f2ebce06", "to": "3bcfeee7-3801-48ee-b138-1cef8709174c", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "e5336976-11d4-4d3a-8976-477e6926a665", "to": "84d71364-42b2-4975-9b4a-891e7c857995", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "61b12ef6-42f9-4f25-8bb2-0152e102d70c", "to": "f94db23b-76d4-4a04-8fbf-d111f9670795", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "0356e671-9bfe-464f-bf84-11a16d4efb57", "to": "d6a0a703-335a-4503-aaac-baa4b41d7f5c", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "3bcfeee7-3801-48ee-b138-1cef8709174c", "to": "2e194ffc-9994-4984-879e-83e07cc792a4", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "b86b032d-b666-4321-8c0e-10b5189fcd64", "to": "f1bae972-a9bb-4726-8700-f03791dc06d5", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}]);
+        var nodes = new vis.DataSet([{"id": "14103914-6e94-4b0d-8483-7e6913cb504a", "label": "GOAL_CREATED\ncoordinator\n(141039)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"role\": \"orchestrator\",\n  \"tools_available\": [],\n  \"timestamp\": 1772526997.9590342\n}", "font": {"size": 12}}, {"id": "a937daa9-c975-4898-817d-fcd4d2e23f1c", "label": "REASONING_STEP\ncoordinator\n(a937da)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "eaa811b7-30b2-44b5-a002-4e3971af1eac", "label": "GOAL_FAILED\ncoordinator\n(eaa811)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_not_found\",\n  \"requested_tool\": \"search_documents\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "713e6885-4b8f-4cac-8b63-dc1bee5c01dd", "label": "GOAL_CREATED\nanalyzer\n(713e68)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"role\": \"content_analyzer\",\n  \"tools_available\": [\n    \"search_documents\"\n  ],\n  \"timestamp\": 1772527015.8705158\n}", "font": {"size": 12}}, {"id": "0f2505ce-de52-4c0e-8e3b-ec02ed29a2f4", "label": "REASONING_STEP\nanalyzer\n(0f2505)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"available_tools\": [\n    \"search_documents\"\n  ]\n}", "font": {"size": 12}}, {"id": "b7ba7ab9-dce7-44e9-8a72-bbc1b99247f9", "label": "TOOL_INVOKED\nanalyzer\n(b7ba7a)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"search_documents\",\n  \"params\": {\n    \"query\": \"machine learning\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: search_documents\\nPARAM_query: machine learning\"\n}", "font": {"size": 12}}, {"id": "843bff17-69a5-47e8-9dcf-6cf6580e1b4b", "label": "REASONING_STEP\nanalyzer\n(843bff)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"search_documents\",\n  \"result_length\": 193\n}", "font": {"size": 12}}, {"id": "2f271689-8be6-40c9-9f0d-488a560c0639", "label": "GOAL_COMPLETED\nanalyzer\n(2f2716)", "color": "#C8E6C9", "title": "{\n  \"result\": \"[{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"tool_used\": \"search_documents\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "5969a2f7-c2b6-4a49-b1cb-64a004e8069c", "label": "GOAL_CREATED\nsummarizer\n(5969a2)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"role\": \"summarization_specialist\",\n  \"tools_available\": [\n    \"summarize_content\"\n  ],\n  \"timestamp\": 1772527032.9970639\n}", "font": {"size": 12}}, {"id": "820e8bb4-0a16-4d0d-85e1-34de4ffe245c", "label": "REASONING_STEP\nsummarizer\n(820e8b)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"available_tools\": [\n    \"summarize_content\"\n  ]\n}", "font": {"size": 12}}, {"id": "1086794b-028e-4bc0-8de2-5400d775113c", "label": "TOOL_INVOKED\nsummarizer\n(108679)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"summarize_content\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: summarize_content\\nPARAM_content: Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n}", "font": {"size": 12}}, {"id": "50608bed-9b15-4a1c-8e47-74320bd0551d", "label": "REASONING_STEP\nsummarizer\n(50608b)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"summarize_content\",\n  \"result_length\": 156\n}", "font": {"size": 12}}, {"id": "26706845-c4bb-4f16-a0f1-0a52f3e90a95", "label": "GOAL_COMPLETED\nsummarizer\n(267068)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"tool_used\": \"summarize_content\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "17c6f78f-8990-4de1-9249-246944535627", "label": "GOAL_CREATED\nclassifier\n(17c6f7)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"role\": \"document_classifier\",\n  \"tools_available\": [\n    \"classify_document\"\n  ],\n  \"timestamp\": 1772527057.4418304\n}", "font": {"size": 12}}, {"id": "602658b3-b7ca-44f7-9fa5-628312f518d5", "label": "REASONING_STEP\nclassifier\n(602658)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"available_tools\": [\n    \"classify_document\"\n  ]\n}", "font": {"size": 12}}, {"id": "2fbecda8-487b-440c-bbb3-9fa0d74b31a0", "label": "TOOL_INVOKED\nclassifier\n(2fbecd)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"classify_document\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: classify_document\\nPARAM_content: Introduction to machine learning concepts (from document with id\\n\\nThis indicates that the document is rela\"\n}", "font": {"size": 12}}, {"id": "b470befb-dc68-409d-bf5d-10c11644eb95", "label": "GOAL_FAILED\nclassifier\n(b470be)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_execution_error\",\n  \"tool\": \"classify_document\",\n  \"error\": \"1 validation error for classify_document\\ntext\\n  Field required [type=missing, input_value={'content': 'Introduction...(from document with id'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"status\": \"failed\"\n}", "font": {"size": 12}}]);
+        var edges = new vis.DataSet([{"from": "a937daa9-c975-4898-817d-fcd4d2e23f1c", "to": "eaa811b7-30b2-44b5-a002-4e3971af1eac", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "17c6f78f-8990-4de1-9249-246944535627", "to": "602658b3-b7ca-44f7-9fa5-628312f518d5", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "0f2505ce-de52-4c0e-8e3b-ec02ed29a2f4", "to": "b7ba7ab9-dce7-44e9-8a72-bbc1b99247f9", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "843bff17-69a5-47e8-9dcf-6cf6580e1b4b", "to": "2f271689-8be6-40c9-9f0d-488a560c0639", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "1086794b-028e-4bc0-8de2-5400d775113c", "to": "50608bed-9b15-4a1c-8e47-74320bd0551d", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "50608bed-9b15-4a1c-8e47-74320bd0551d", "to": "26706845-c4bb-4f16-a0f1-0a52f3e90a95", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "2fbecda8-487b-440c-bbb3-9fa0d74b31a0", "to": "b470befb-dc68-409d-bf5d-10c11644eb95", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "820e8bb4-0a16-4d0d-85e1-34de4ffe245c", "to": "1086794b-028e-4bc0-8de2-5400d775113c", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "5969a2f7-c2b6-4a49-b1cb-64a004e8069c", "to": "820e8bb4-0a16-4d0d-85e1-34de4ffe245c", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "713e6885-4b8f-4cac-8b63-dc1bee5c01dd", "to": "0f2505ce-de52-4c0e-8e3b-ec02ed29a2f4", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "b7ba7ab9-dce7-44e9-8a72-bbc1b99247f9", "to": "843bff17-69a5-47e8-9dcf-6cf6580e1b4b", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "14103914-6e94-4b0d-8483-7e6913cb504a", "to": "a937daa9-c975-4898-817d-fcd4d2e23f1c", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "602658b3-b7ca-44f7-9fa5-628312f518d5", "to": "2fbecda8-487b-440c-bbb3-9fa0d74b31a0", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}]);
 
         var container = document.getElementById('network');
         var data = {
@@ -125,31 +324,94 @@
             physics: {
                 enabled: true,
                 stabilization: {
-                    iterations: 200
+                    iterations: 200,
+                    fit: true
+                },
+                barnesHut: {
+                    gravitationalConstant: -26000,
+                    centralGravity: 0.3,
+                    springLength: 200
                 }
             },
             nodes: {
                 font: {
-                    size: 14,
-                    color: '#333'
+                    size: 13,
+                    color: '#333',
+                    face: 'Segoe UI'
                 },
                 borderWidth: 2,
-                borderWidthSelected: 3
+                borderWidthSelected: 4,
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.2)',
+                    size: 10,
+                    x: 5,
+                    y: 5
+                }
             },
             edges: {
                 smooth: {
-                    type: 'continuous'
+                    type: 'continuous',
+                    roundness: 0.5
                 },
                 arrows: {
                     to: {
                         enabled: true,
-                        scaleFactor: 1.2
+                        scaleFactor: 1.3,
+                        type: 'arrow'
                     }
+                },
+                color: {
+                    color: '#aaa',
+                    highlight: '#667eea',
+                    opacity: 0.6
+                },
+                width: 2,
+                font: {
+                    size: 11,
+                    color: '#666',
+                    background: {
+                        enabled: true,
+                        color: 'white'
+                    }
+                },
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.1)',
+                    size: 5,
+                    x: 3,
+                    y: 3
                 }
             }
         };
 
         var network = new vis.Network(container, data, options);
+
+        // Event list
+        var events = [{"id": "14103914", "type": "GOAL_CREATED", "agent": "coordinator"}, {"id": "a937daa9", "type": "REASONING_STEP", "agent": "coordinator"}, {"id": "eaa811b7", "type": "GOAL_FAILED", "agent": "coordinator"}, {"id": "713e6885", "type": "GOAL_CREATED", "agent": "analyzer"}, {"id": "0f2505ce", "type": "REASONING_STEP", "agent": "analyzer"}, {"id": "b7ba7ab9", "type": "TOOL_INVOKED", "agent": "analyzer"}, {"id": "843bff17", "type": "REASONING_STEP", "agent": "analyzer"}, {"id": "2f271689", "type": "GOAL_COMPLETED", "agent": "analyzer"}, {"id": "5969a2f7", "type": "GOAL_CREATED", "agent": "summarizer"}, {"id": "820e8bb4", "type": "REASONING_STEP", "agent": "summarizer"}, {"id": "1086794b", "type": "TOOL_INVOKED", "agent": "summarizer"}, {"id": "50608bed", "type": "REASONING_STEP", "agent": "summarizer"}, {"id": "26706845", "type": "GOAL_COMPLETED", "agent": "summarizer"}, {"id": "17c6f78f", "type": "GOAL_CREATED", "agent": "classifier"}, {"id": "602658b3", "type": "REASONING_STEP", "agent": "classifier"}, {"id": "2fbecda8", "type": "TOOL_INVOKED", "agent": "classifier"}, {"id": "b470befb", "type": "GOAL_FAILED", "agent": "classifier"}];
+        var eventListHtml = events.map((e, i) => 
+            `<div class="event-item" onclick="selectEvent('${e.id}')">
+                <div class="event-type">${i+1}. ${e.type}</div>
+                <div class="event-agent">${e.agent}</div>
+            </div>`
+        ).join('');
+        document.getElementById('eventList').innerHTML = eventListHtml;
+
+        function selectEvent(eventId) {
+            var event = [{"event_id": "14103914-6e94-4b0d-8483-7e6913cb504a", "event_type": "GOAL_CREATED", "agent_id": "coordinator", "timestamp": 1772526997.959042, "correlation_id": "realistic_viz_001", "payload": {"goal": "Coordinate analysis of document about machine learning", "role": "orchestrator", "tools_available": [], "timestamp": 1772526997.9590342}}, {"event_id": "a937daa9-c975-4898-817d-fcd4d2e23f1c", "event_type": "REASONING_STEP", "agent_id": "coordinator", "timestamp": 1772526997.959048, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Coordinate analysis of document about machine learning", "available_tools": []}}, {"event_id": "eaa811b7-30b2-44b5-a002-4e3971af1eac", "event_type": "GOAL_FAILED", "agent_id": "coordinator", "timestamp": 1772527015.869443, "correlation_id": "realistic_viz_001", "payload": {"reason": "tool_not_found", "requested_tool": "search_documents", "available_tools": []}}, {"event_id": "713e6885-4b8f-4cac-8b63-dc1bee5c01dd", "event_type": "GOAL_CREATED", "agent_id": "analyzer", "timestamp": 1772527015.870541, "correlation_id": "realistic_viz_001", "payload": {"goal": "Extract and search for information about machine learning", "role": "content_analyzer", "tools_available": ["search_documents"], "timestamp": 1772527015.8705158}}, {"event_id": "0f2505ce-de52-4c0e-8e3b-ec02ed29a2f4", "event_type": "REASONING_STEP", "agent_id": "analyzer", "timestamp": 1772527015.870564, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Extract and search for information about machine learning", "available_tools": ["search_documents"]}}, {"event_id": "b7ba7ab9-dce7-44e9-8a72-bbc1b99247f9", "event_type": "TOOL_INVOKED", "agent_id": "analyzer", "timestamp": 1772527032.996245, "correlation_id": "realistic_viz_001", "payload": {"tool": "search_documents", "params": {"query": "machine learning"}, "reasoning_snippet": "TOOL_NAME: search_documents\nPARAM_query: machine learning"}}, {"event_id": "843bff17-69a5-47e8-9dcf-6cf6580e1b4b", "event_type": "REASONING_STEP", "agent_id": "analyzer", "timestamp": 1772527032.99671, "correlation_id": "realistic_viz_001", "payload": {"step": "process_tool_result", "tool": "search_documents", "result_length": 193}}, {"event_id": "2f271689-8be6-40c9-9f0d-488a560c0639", "event_type": "GOAL_COMPLETED", "agent_id": "analyzer", "timestamp": 1772527032.996717, "correlation_id": "realistic_viz_001", "payload": {"result": "[{\"id\": \"doc_001\", \"title\": \"ML Basics\", \"summary\": \"Introduction to machine learning concepts\"}, {\"", "tool_used": "search_documents", "status": "success"}}, {"event_id": "5969a2f7-c2b6-4a49-b1cb-64a004e8069c", "event_type": "GOAL_CREATED", "agent_id": "summarizer", "timestamp": 1772527032.997069, "correlation_id": "realistic_viz_001", "payload": {"goal": "Create a concise summary of: [{\"id\": \"doc_001\", \"title\": \"ML Basics\", \"summary\": \"Introduction to machine learning concepts\"}, {\"", "role": "summarization_specialist", "tools_available": ["summarize_content"], "timestamp": 1772527032.9970639}}, {"event_id": "820e8bb4-0a16-4d0d-85e1-34de4ffe245c", "event_type": "REASONING_STEP", "agent_id": "summarizer", "timestamp": 1772527032.997073, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Create a concise summary of: [{\"id\": \"doc_001\", \"title\": \"ML Basics\", \"summary\": \"Introduction to machine learning concepts\"}, {\"", "available_tools": ["summarize_content"]}}, {"event_id": "1086794b-028e-4bc0-8de2-5400d775113c", "event_type": "TOOL_INVOKED", "agent_id": "summarizer", "timestamp": 1772527057.440592, "correlation_id": "realistic_viz_001", "payload": {"tool": "summarize_content", "params": {"content": "Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)"}, "reasoning_snippet": "TOOL_NAME: summarize_content\nPARAM_content: Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)"}}, {"event_id": "50608bed-9b15-4a1c-8e47-74320bd0551d", "event_type": "REASONING_STEP", "agent_id": "summarizer", "timestamp": 1772527057.441299, "correlation_id": "realistic_viz_001", "payload": {"step": "process_tool_result", "tool": "summarize_content", "result_length": 156}}, {"event_id": "26706845-c4bb-4f16-a0f1-0a52f3e90a95", "event_type": "GOAL_COMPLETED", "agent_id": "summarizer", "timestamp": 1772527057.441309, "correlation_id": "realistic_viz_001", "payload": {"result": "{\"original_length\": 93, \"summary\": \"Introduction to machine learning concepts (from document with id", "tool_used": "summarize_content", "status": "success"}}, {"event_id": "17c6f78f-8990-4de1-9249-246944535627", "event_type": "GOAL_CREATED", "agent_id": "classifier", "timestamp": 1772527057.441839, "correlation_id": "realistic_viz_001", "payload": {"goal": "Classify this content: {\"original_length\": 93, \"summary\": \"Introduction to machine learning concepts (from document with id", "role": "document_classifier", "tools_available": ["classify_document"], "timestamp": 1772527057.4418304}}, {"event_id": "602658b3-b7ca-44f7-9fa5-628312f518d5", "event_type": "REASONING_STEP", "agent_id": "classifier", "timestamp": 1772527057.441847, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Classify this content: {\"original_length\": 93, \"summary\": \"Introduction to machine learning concepts (from document with id", "available_tools": ["classify_document"]}}, {"event_id": "2fbecda8-487b-440c-bbb3-9fa0d74b31a0", "event_type": "TOOL_INVOKED", "agent_id": "classifier", "timestamp": 1772527081.512694, "correlation_id": "realistic_viz_001", "payload": {"tool": "classify_document", "params": {"content": "Introduction to machine learning concepts (from document with id"}, "reasoning_snippet": "TOOL_NAME: classify_document\nPARAM_content: Introduction to machine learning concepts (from document with id\n\nThis indicates that the document is rela"}}, {"event_id": "b470befb-dc68-409d-bf5d-10c11644eb95", "event_type": "GOAL_FAILED", "agent_id": "classifier", "timestamp": 1772527081.513222, "correlation_id": "realistic_viz_001", "payload": {"reason": "tool_execution_error", "tool": "classify_document", "error": "1 validation error for classify_document\ntext\n  Field required [type=missing, input_value={'content': 'Introduction...(from document with id'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing", "params": {"content": "Introduction to machine learning concepts (from document with id"}, "status": "failed"}}].find(e => e.event_id.startsWith(eventId));
+            if (event) {
+                var html = `
+                    <strong>${event.event_type}</strong><br>
+                    Agent: <strong>${event.agent_id}</strong><br>
+                    Time: ${event.timestamp.toFixed(3)}<br>
+                    <hr>
+                    <strong>Payload:</strong><br>
+                    ${JSON.stringify(event.payload, null, 2).substring(0, 500)}...
+                `;
+                document.getElementById('eventInfo').innerHTML = html;
+                nodes.update({id: event.event_id, borderWidth: 4});
+            }
+        }
 
         function zoomIn() {
             var scale = network.getScale();
@@ -167,13 +429,26 @@
             network.fit({ animation: true });
         }
 
+        function resetPhysics() {
+            network.setOptions({ physics: { enabled: true } });
+            network.stabilize();
+        }
+
         function downloadPNG() {
             var canvas = network.canvas.canvas;
             var link = document.createElement('a');
             link.href = canvas.toDataURL();
-            link.download = 'dag_visualization.png';
+            link.download = 'causal_dag.png';
             link.click();
         }
+
+        // Click on node to show details
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                var nodeId = params.nodes[0];
+                selectEvent(nodeId.substring(0, 8));
+            }
+        });
     </script>
 </body>
 </html>

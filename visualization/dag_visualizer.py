@@ -232,117 +232,324 @@ digraph CausalDAG {{
         num_edges = len(dag.edges)
         agents = ', '.join(sorted(set(e['agent_id'] for e in dag.events)))
         
+        # Count event types
+        event_type_counts = {}
+        for event in dag.events:
+            etype = event['event_type']
+            event_type_counts[etype] = event_type_counts.get(etype, 0) + 1
+        
+        event_stats = '<br>'.join([f"{k}: {v}" for k, v in sorted(event_type_counts.items())])
+        
         html_content = """<!DOCTYPE html>
 <html>
 <head>
     <title>SPECTRA - Causal DAG Visualization</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style type="text/css">
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
-            background-color: #f5f5f5;
         }
-        #network {
-            width: 100%;
-            height: 800px;
-            border: 1px solid #ddd;
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
-        h1 {
-            color: #333;
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
             margin-bottom: 10px;
         }
-        .info {
-            background-color: #e3f2fd;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
         }
-        .legend {
+        
+        .content {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .sidebar h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .stat-group {
             margin-bottom: 20px;
         }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
         }
+        
         .legend-color {
-            width: 30px;
-            height: 30px;
+            width: 20px;
+            height: 20px;
             border-radius: 3px;
+            margin-right: 8px;
+            border: 1px solid #999;
+        }
+        
+        #network {
             border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            position: relative;
         }
+        
         .controls {
-            margin-bottom: 20px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
         }
+        
         button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            background-color: #2196F3;
+            padding: 8px 12px;
+            background-color: #667eea;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
         }
+        
         button:hover {
-            background-color: #1976D2;
+            background-color: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .right-sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .event-list {
+            font-size: 12px;
+        }
+        
+        .event-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .event-item:hover {
+            background: #f0f0f0;
+            transform: translateX(3px);
+        }
+        
+        .event-type {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 11px;
+        }
+        
+        .event-agent {
+            color: #666;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        .info-detail {
+            color: #666;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar, .right-sidebar {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 SPECTRA - Causal DAG Visualization</h1>
-        
-        <div class="info">
-            <strong>Events:</strong> """ + str(num_events) + """ | 
-            <strong>Causal Edges:</strong> """ + str(num_edges) + """ |
-            <strong>Agents:</strong> """ + agents + """
+        <div class="header">
+            <h1>🔍 SPECTRA - Semantic Causal DAG Visualization</h1>
+            <p>Interactive exploration of multi-agent reasoning and coordination</p>
         </div>
         
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #E8F4F8;"></div>
-                <span>Reasoning Step</span>
+        <div class="content">
+            <!-- Left Sidebar: Statistics -->
+            <div class="sidebar">
+                <h3>📊 Execution Summary</h3>
+                <div class="stat-group">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Events:</span>
+                        <span class="stat-value">""" + str(num_events) + """</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Causal Edges:</span>
+                        <span class="stat-value">""" + str(num_edges) + """</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Agents:</span>
+                        <span class="stat-value">""" + str(len(set(e['agent_id'] for e in dag.events))) + """</span>
+                    </div>
+                </div>
+                
+                <h3>📈 Event Types</h3>
+                <div class="stat-group">
+                    """ + "".join([f'<div class="stat-item"><span class="stat-label">{k}:</span><span class="stat-value">{v}</span></div>' for k, v in sorted(event_type_counts.items())]) + """
+                </div>
+                
+                <div class="legend">
+                    <strong style="font-size: 12px;">Event Type Colors</strong>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #E8F4F8;"></div>
+                        <span>Reasoning Step</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #C8E6C9;"></div>
+                        <span>Goal Created</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFE0B2;"></div>
+                        <span>Goal Delegated</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #F8BBD0;"></div>
+                        <span>Tool Invoked</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFCDD2;"></div>
+                        <span>Goal Failed</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #B2DFDB;"></div>
+                        <span>Goal Completed</span>
+                    </div>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #FFE0B2;"></div>
-                <span>Goal Delegated</span>
+            
+            <!-- Center: Network Visualization -->
+            <div style="position: relative;">
+                <div id="network"></div>
+                <div class="controls">
+                    <button onclick="zoomIn()">🔍+ Zoom In</button>
+                    <button onclick="zoomOut()">🔍- Zoom Out</button>
+                    <button onclick="fitToScreen()">📐 Fit</button>
+                    <button onclick="resetPhysics()">🔄 Reset</button>
+                    <button onclick="downloadPNG()">💾 PNG</button>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #F8BBD0;"></div>
-                <span>Tool Invoked</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #FFCDD2;"></div>
-                <span>Goal Failed</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #C8E6C9;"></div>
-                <span>Goal Completed</span>
+            
+            <!-- Right Sidebar: Events and Details -->
+            <div class="right-sidebar">
+                <h3>📋 Event Timeline</h3>
+                <div class="event-list" id="eventList"></div>
+                
+                <div class="info-panel">
+                    <div class="info-title">ℹ️ Selected Event Details</div>
+                    <div class="info-detail" id="eventInfo">
+                        Click an event node to see details
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div class="controls">
-            <button onclick="zoomIn()">🔍 Zoom In</button>
-            <button onclick="zoomOut()">🔍 Zoom Out</button>
-            <button onclick="fitToScreen()">📐 Fit Screen</button>
-            <button onclick="downloadPNG()">💾 Download PNG</button>
-        </div>
-        
-        <div id="network"></div>
     </div>
 
     <script type="text/javascript">
@@ -359,31 +566,94 @@ digraph CausalDAG {{
             physics: {
                 enabled: true,
                 stabilization: {
-                    iterations: 200
+                    iterations: 200,
+                    fit: true
+                },
+                barnesHut: {
+                    gravitationalConstant: -26000,
+                    centralGravity: 0.3,
+                    springLength: 200
                 }
             },
             nodes: {
                 font: {
-                    size: 14,
-                    color: '#333'
+                    size: 13,
+                    color: '#333',
+                    face: 'Segoe UI'
                 },
                 borderWidth: 2,
-                borderWidthSelected: 3
+                borderWidthSelected: 4,
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.2)',
+                    size: 10,
+                    x: 5,
+                    y: 5
+                }
             },
             edges: {
                 smooth: {
-                    type: 'continuous'
+                    type: 'continuous',
+                    roundness: 0.5
                 },
                 arrows: {
                     to: {
                         enabled: true,
-                        scaleFactor: 1.2
+                        scaleFactor: 1.3,
+                        type: 'arrow'
                     }
+                },
+                color: {
+                    color: '#aaa',
+                    highlight: '#667eea',
+                    opacity: 0.6
+                },
+                width: 2,
+                font: {
+                    size: 11,
+                    color: '#666',
+                    background: {
+                        enabled: true,
+                        color: 'white'
+                    }
+                },
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.1)',
+                    size: 5,
+                    x: 3,
+                    y: 3
                 }
             }
         };
 
         var network = new vis.Network(container, data, options);
+
+        // Event list
+        var events = """ + json.dumps([{"id": e["event_id"][:8], "type": e["event_type"], "agent": e["agent_id"]} for e in dag.events]) + """;
+        var eventListHtml = events.map((e, i) => 
+            `<div class="event-item" onclick="selectEvent('${e.id}')">
+                <div class="event-type">${i+1}. ${e.type}</div>
+                <div class="event-agent">${e.agent}</div>
+            </div>`
+        ).join('');
+        document.getElementById('eventList').innerHTML = eventListHtml;
+
+        function selectEvent(eventId) {
+            var event = """ + json.dumps(dag.events) + """.find(e => e.event_id.startsWith(eventId));
+            if (event) {
+                var html = `
+                    <strong>${event.event_type}</strong><br>
+                    Agent: <strong>${event.agent_id}</strong><br>
+                    Time: ${event.timestamp.toFixed(3)}<br>
+                    <hr>
+                    <strong>Payload:</strong><br>
+                    ${JSON.stringify(event.payload, null, 2).substring(0, 500)}...
+                `;
+                document.getElementById('eventInfo').innerHTML = html;
+                nodes.update({id: event.event_id, borderWidth: 4});
+            }
+        }
 
         function zoomIn() {
             var scale = network.getScale();
@@ -401,13 +671,26 @@ digraph CausalDAG {{
             network.fit({ animation: true });
         }
 
+        function resetPhysics() {
+            network.setOptions({ physics: { enabled: true } });
+            network.stabilize();
+        }
+
         function downloadPNG() {
             var canvas = network.canvas.canvas;
             var link = document.createElement('a');
             link.href = canvas.toDataURL();
-            link.download = 'dag_visualization.png';
+            link.download = 'causal_dag.png';
             link.click();
         }
+
+        // Click on node to show details
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                var nodeId = params.nodes[0];
+                selectEvent(nodeId.substring(0, 8));
+            }
+        });
     </script>
 </body>
 </html>
