@@ -1,42 +1,42 @@
 ```mermaid
 graph TD
-    a937daa9["REASONING_STEP (coordinator)"]
-    eaa811b7["GOAL_FAILED (coordinator)"]
-    a937daa9 -->|intra_agent_sequence| eaa811b7
-    17c6f78f["GOAL_CREATED (classifier)"]
-    602658b3["REASONING_STEP (classifier)"]
-    17c6f78f -->|inferred_by_proximity| 602658b3
-    0f2505ce["REASONING_STEP (analyzer)"]
-    b7ba7ab9["TOOL_INVOKED (analyzer)"]
-    0f2505ce -->|intra_agent_sequence| b7ba7ab9
-    843bff17["REASONING_STEP (analyzer)"]
-    2f271689["GOAL_COMPLETED (analyzer)"]
-    843bff17 -->|intra_agent_sequence| 2f271689
-    1086794b["TOOL_INVOKED (summarizer)"]
-    50608bed["REASONING_STEP (summarizer)"]
-    1086794b -->|inferred_by_proximity| 50608bed
-    50608bed["REASONING_STEP (summarizer)"]
-    26706845["GOAL_COMPLETED (summarizer)"]
-    50608bed -->|intra_agent_sequence| 26706845
-    2fbecda8["TOOL_INVOKED (classifier)"]
-    b470befb["GOAL_FAILED (classifier)"]
-    2fbecda8 -->|inferred_by_proximity| b470befb
-    820e8bb4["REASONING_STEP (summarizer)"]
-    1086794b["TOOL_INVOKED (summarizer)"]
-    820e8bb4 -->|intra_agent_sequence| 1086794b
-    5969a2f7["GOAL_CREATED (summarizer)"]
-    820e8bb4["REASONING_STEP (summarizer)"]
-    5969a2f7 -->|inferred_by_proximity| 820e8bb4
-    713e6885["GOAL_CREATED (analyzer)"]
-    0f2505ce["REASONING_STEP (analyzer)"]
-    713e6885 -->|inferred_by_proximity| 0f2505ce
-    b7ba7ab9["TOOL_INVOKED (analyzer)"]
-    843bff17["REASONING_STEP (analyzer)"]
-    b7ba7ab9 -->|inferred_by_proximity| 843bff17
-    14103914["GOAL_CREATED (coordinator)"]
-    a937daa9["REASONING_STEP (coordinator)"]
-    14103914 -->|inferred_by_proximity| a937daa9
-    602658b3["REASONING_STEP (classifier)"]
-    2fbecda8["TOOL_INVOKED (classifier)"]
-    602658b3 -->|intra_agent_sequence| 2fbecda8
+    83dcb879["GOAL_CREATED (classifier)"]
+    24d02463["REASONING_STEP (classifier)"]
+    83dcb879 -->|inferred_by_proximity| 24d02463
+    b672063f["TOOL_INVOKED (classifier)"]
+    1e4cdf80["GOAL_FAILED (classifier)"]
+    b672063f -->|inferred_by_proximity| 1e4cdf80
+    a7c1f136["GOAL_CREATED (analyzer)"]
+    afcd4e5b["REASONING_STEP (analyzer)"]
+    a7c1f136 -->|inferred_by_proximity| afcd4e5b
+    49a1a3f2["TOOL_INVOKED (analyzer)"]
+    142f4c6e["REASONING_STEP (analyzer)"]
+    49a1a3f2 -->|inferred_by_proximity| 142f4c6e
+    6be1d010["REASONING_STEP (coordinator)"]
+    6d87d8a5["GOAL_FAILED (coordinator)"]
+    6be1d010 -->|intra_agent_sequence| 6d87d8a5
+    7632f665["REASONING_STEP (summarizer)"]
+    1e84ff34["GOAL_COMPLETED (summarizer)"]
+    7632f665 -->|intra_agent_sequence| 1e84ff34
+    1f7c99b1["TOOL_INVOKED (summarizer)"]
+    7632f665["REASONING_STEP (summarizer)"]
+    1f7c99b1 -->|inferred_by_proximity| 7632f665
+    afcd4e5b["REASONING_STEP (analyzer)"]
+    49a1a3f2["TOOL_INVOKED (analyzer)"]
+    afcd4e5b -->|intra_agent_sequence| 49a1a3f2
+    142f4c6e["REASONING_STEP (analyzer)"]
+    755a4578["GOAL_COMPLETED (analyzer)"]
+    142f4c6e -->|intra_agent_sequence| 755a4578
+    24d02463["REASONING_STEP (classifier)"]
+    b672063f["TOOL_INVOKED (classifier)"]
+    24d02463 -->|intra_agent_sequence| b672063f
+    3e23ae2d["GOAL_CREATED (summarizer)"]
+    bcf38584["REASONING_STEP (summarizer)"]
+    3e23ae2d -->|inferred_by_proximity| bcf38584
+    bcf38584["REASONING_STEP (summarizer)"]
+    1f7c99b1["TOOL_INVOKED (summarizer)"]
+    bcf38584 -->|intra_agent_sequence| 1f7c99b1
+    7ba38261["GOAL_CREATED (coordinator)"]
+    6be1d010["REASONING_STEP (coordinator)"]
+    7ba38261 -->|inferred_by_proximity| 6be1d010
 ```

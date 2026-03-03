@@ -52,14 +52,14 @@ def main():
     
     visualizer = DAGVisualizer()
     
-    # 1. Graphviz (DOT format)
+    # 1. Interactive HTML with D3.js (NEW - improved version with timeline)
+    visualizer.create_html_interactive(dag, output_file="realistic_dag_interactive.html")
+    
+    # 2. Graphviz (DOT format) for publication-quality images
     visualizer.create_graphviz(dag, output_file="realistic_dag.dot")
     
-    # 2. Mermaid (markdown-embeddable)
+    # 3. Mermaid (markdown-embeddable)
     visualizer.create_mermaid(dag, output_file="realistic_dag.md")
-    
-    # 3. Interactive HTML (vis.js)
-    visualizer.create_html_interactive(dag, output_file="realistic_dag_interactive.html")
     
     # 4. Summary table
     visualizer.create_summary_table(dag, output_file="realistic_dag_summary.md")
@@ -70,17 +70,24 @@ def main():
     print("""
 Generated Files:
 
-1. realistic_dag.dot
+1. realistic_dag_interactive.html ⭐ (NEW - IMPROVED)
+   Format: Interactive D3.js visualization
+   Features: 
+     - Large graph area (70% of screen)
+     - Zoom/pan/drag nodes
+     - Event timeline on left sidebar
+     - Click events to highlight connections
+     - Download as PNG (working!)
+     - Responsive design
+   Use: Open in web browser
+   
+2. realistic_dag.dot
    Format: Graphviz DOT
    Use: dot -Tpng realistic_dag.dot -o realistic_dag.png
    
-2. realistic_dag.md
+3. realistic_dag.md
    Format: Mermaid diagram (markdown)
    Use: View in GitHub, Notion, Confluence, etc.
-   
-3. realistic_dag_interactive.html ⭐
-   Format: Interactive HTML (vis.js)
-   Use: Open in web browser, zoom/pan/drag nodes
    
 4. realistic_dag_summary.md
    Format: Markdown tables
@@ -92,9 +99,10 @@ Generated Files:
 ✅ Real LLM Reasoning: Each agent used Mistral to decide what to do
 ✅ Tool Execution: Agents successfully invoked tools based on LLM decisions
 ✅ Multi-Agent Coordination: 4 agents working in sequence (coordinator → analyzer → summarizer → classifier)
-✅ Causal Tracing: All 13 causal edges correctly reconstructed from semantic events
-✅ Failure Handling: Realistic failure modes detected and traced (classifier tool param mismatch)
+✅ Causal Tracing: All causal edges correctly reconstructed from semantic events
+✅ Failure Handling: Realistic failure modes detected and traced
 ✅ Event Semantics: Proper event sequence (GOAL_CREATED → REASONING_STEP → TOOL_INVOKED → GOAL_COMPLETED/FAILED)
+✅ Improved Visualization: Much larger graph area + working PNG export + event timeline
 
 This demonstrates SPECTRA working on REALISTIC, not synthetic, agent execution!
 """)

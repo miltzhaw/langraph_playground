@@ -85,7 +85,7 @@ digraph CausalDAG {{
         }
         
         for (from_id, to_id) in dag.edges:
-            edge_detail = dag.edge_details.get((from_id, to_id))
+            edge_detail = dag.edge_details.get((from_id, to_id)) if hasattr(dag, 'edge_details') else None
             reason = edge_detail.reason if edge_detail else 'unknown'
             color = edge_colors.get(reason, '#999999')
             
@@ -145,7 +145,7 @@ digraph CausalDAG {{
                 from_key = from_id[:8]
                 to_key = to_id[:8]
                 
-                edge_detail = dag.edge_details.get((from_id, to_id))
+                edge_detail = dag.edge_details.get((from_id, to_id)) if hasattr(dag, 'edge_details') else None
                 reason = edge_detail.reason if edge_detail else 'unknown'
                 
                 lines.append('    ' + from_key + '["' + from_label + '"]')
@@ -204,7 +204,7 @@ digraph CausalDAG {{
             })
         
         # Create edges
-        edge_colors = {
+        edge_colors_map = {
             'delegation': '#FF6B6B',
             'intra_agent_sequence': '#4ECDC4',
             'inferred_by_proximity': '#95E1D3',
@@ -212,9 +212,9 @@ digraph CausalDAG {{
         }
         
         for (from_id, to_id) in dag.edges:
-            edge_detail = dag.edge_details.get((from_id, to_id))
+            edge_detail = dag.edge_details.get((from_id, to_id)) if hasattr(dag, 'edge_details') else None
             reason = edge_detail.reason if edge_detail else 'unknown'
-            color = edge_colors.get(reason, '#999999')
+            color = edge_colors_map.get(reason, '#999999')
             
             edges.append({
                 'from': from_id,
@@ -239,6 +239,10 @@ digraph CausalDAG {{
             event_type_counts[etype] = event_type_counts.get(etype, 0) + 1
         
         event_stats = '<br>'.join([f"{k}: {v}" for k, v in sorted(event_type_counts.items())])
+        
+        # Extract event list for timeline
+        event_list_data = [{"id": e["event_id"][:8], "type": e["event_type"], "agent": e["agent_id"]} for e in dag.events]
+        event_list_json = json.dumps(event_list_data)
         
         html_content = """<!DOCTYPE html>
 <html>
@@ -352,6 +356,7 @@ digraph CausalDAG {{
         }
         
         #network {
+            height: 75vh;
             border: 1px solid #ddd;
             border-radius: 8px;
             background: white;
@@ -630,7 +635,7 @@ digraph CausalDAG {{
         var network = new vis.Network(container, data, options);
 
         // Event list
-        var events = """ + json.dumps([{"id": e["event_id"][:8], "type": e["event_type"], "agent": e["agent_id"]} for e in dag.events]) + """;
+        var events = """ + event_list_json + """;
         var eventListHtml = events.map((e, i) => 
             `<div class="event-item" onclick="selectEvent('${e.id}')">
                 <div class="event-type">${i+1}. ${e.type}</div>
@@ -640,7 +645,8 @@ digraph CausalDAG {{
         document.getElementById('eventList').innerHTML = eventListHtml;
 
         function selectEvent(eventId) {
-            var event = """ + json.dumps(dag.events) + """.find(e => e.event_id.startsWith(eventId));
+            var allEvents = """ + json.dumps(dag.events) + """;
+            var event = allEvents.find(e => e.event_id.startsWith(eventId));
             if (event) {
                 var html = `
                     <strong>${event.event_type}</strong><br>
@@ -648,7 +654,7 @@ digraph CausalDAG {{
                     Time: ${event.timestamp.toFixed(3)}<br>
                     <hr>
                     <strong>Payload:</strong><br>
-                    ${JSON.stringify(event.payload, null, 2).substring(0, 500)}...
+                    <pre>${JSON.stringify(event.payload, null, 2).substring(0, 500)}</pre>
                 `;
                 document.getElementById('eventInfo').innerHTML = html;
                 nodes.update({id: event.event_id, borderWidth: 4});
@@ -677,11 +683,28 @@ digraph CausalDAG {{
         }
 
         function downloadPNG() {
-            var canvas = network.canvas.canvas;
-            var link = document.createElement('a');
-            link.href = canvas.toDataURL();
-            link.download = 'causal_dag.png';
-            link.click();
+            network.once("afterDrawing", function(ctx) {
+                var scaleFactor = 2; // higher resolution
+                var canvas = ctx.canvas;
+
+                var exportCanvas = document.createElement("canvas");
+                exportCanvas.width = canvas.width * scaleFactor;
+                exportCanvas.height = canvas.height * scaleFactor;
+
+                var exportCtx = exportCanvas.getContext("2d");
+                exportCtx.scale(scaleFactor, scaleFactor);
+                exportCtx.drawImage(canvas, 0, 0);
+
+                var link = document.createElement("a");
+                link.href = exportCanvas.toDataURL("image/png");
+                link.download = "causal_dag_highres.png";
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            network.redraw();
         }
 
         // Click on node to show details
@@ -746,7 +769,7 @@ digraph CausalDAG {{
         
         reasons = {}
         for (from_id, to_id) in dag.edges:
-            edge = dag.edge_details.get((from_id, to_id))
+            edge = dag.edge_details.get((from_id, to_id)) if hasattr(dag, 'edge_details') else None
             reason = edge.reason if edge else 'unknown'
             reasons[reason] = reasons.get(reason, 0) + 1
         
