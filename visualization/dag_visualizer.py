@@ -112,56 +112,42 @@ digraph CausalDAG {{
     
     def create_mermaid(self, dag, output_file="dag.md"):
         """
-        Create Mermaid diagram (markdown-embeddable)
-        
-        Args:
-            dag: CausalDAG object
-            output_file: Output .md filename with mermaid syntax
+        Create separate Mermaid diagrams per agent
         """
-        lines = ["```mermaid", "graph TD"]
-        
-        # Add nodes with styling
-        event_style = {
-            'REASONING_STEP': 'style REASONING_STEP fill:#E8F4F8',
-            'GOAL_CREATED': 'style GOAL_CREATED fill:#C8E6C9',
-            'GOAL_DELEGATED': 'style GOAL_DELEGATED fill:#FFE0B2',
-            'TOOL_INVOKED': 'style TOOL_INVOKED fill:#F8BBD0',
-            'GOAL_FAILED': 'style GOAL_FAILED fill:#FFCDD2',
-        }
-        
-        for (from_id, to_id) in dag.edges:
-            from_event = next((e for e in dag.events if e['event_id'] == from_id), None)
-            to_event = next((e for e in dag.events if e['event_id'] == to_id), None)
-            
-            if from_event and to_event:
-                from_type = from_event['event_type']
-                to_type = to_event['event_type']
-                from_agent = from_event['agent_id']
-                to_agent = to_event['agent_id']
-                
-                from_label = from_type + " (" + from_agent + ")"
-                to_label = to_type + " (" + to_agent + ")"
-                
-                from_key = from_id[:8]
-                to_key = to_id[:8]
-                
-                edge_detail = dag.edge_details.get((from_id, to_id)) if hasattr(dag, 'edge_details') else None
-                reason = edge_detail.reason if edge_detail else 'unknown'
-                
-                lines.append('    ' + from_key + '["' + from_label + '"]')
-                lines.append('    ' + to_key + '["' + to_label + '"]')
-                lines.append('    ' + from_key + ' -->|' + reason + '| ' + to_key)
-        
-        lines.append("```")
-        
-        content = '\n'.join(lines)
-        
-        with open(output_file, 'w') as f:
-            f.write(content)
-        
-        print("\n✓ Created Mermaid diagram: " + output_file)
-        print("  View in: GitHub markdown, Notion, Confluence, etc.")
-        
+
+        # Group events by agent
+        events_by_agent = {}
+        for event in dag.events:
+            agent = event["agent_id"]
+            events_by_agent.setdefault(agent, []).append(event)
+
+        content_blocks = []
+
+        for agent, events in sorted(events_by_agent.items()):
+            lines = [f"## Agent: {agent}", "", "```mermaid", "graph TD"]
+
+            # Add nodes
+            for event in events:
+                node_id = event["event_id"][:8]
+                label = f"{event['event_type']} ({node_id})"
+                lines.append(f'    {node_id}["{label}"]')
+
+            # Add edges only within this agent
+            for (from_id, to_id) in dag.edges:
+                from_event = next((e for e in events if e["event_id"] == from_id), None)
+                to_event = next((e for e in events if e["event_id"] == to_id), None)
+
+                if from_event and to_event:
+                    lines.append(f"    {from_id[:8]} --> {to_id[:8]}")
+
+            lines.append("```")
+            lines.append("")
+            content_blocks.append("\n".join(lines))
+
+        with open(output_file, "w") as f:
+            f.write("\n\n".join(content_blocks))
+
+        print(f"\n✓ Created multi-diagram Mermaid file: {output_file}")
         return output_file
     
     def create_html_interactive(self, dag, output_file="dag_interactive.html"):
