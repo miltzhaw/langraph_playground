@@ -1,30 +1,152 @@
 """
-Research Paper Analysis Agent Tools
-
-A specialized set of tools for analyzing academic papers through:
-1. PDF ingestion and metadata extraction (with pdfplumber) ✅ WORKS
-2. Content search and retrieval ✅ WORKS
-3. Academic synthesis and summarization ✅ WORKS
-4. Citation validation and relationship mapping - ⚠️ PARTIAL (validation may timeout ~5%)
+Research Paper Tools — STRICT MODE version
+Pure tools (NO LLM). With robust PDF text cleaning + word boundary reconstruction.
 """
 
 from dataclasses import dataclass
 from typing import Any
-import random
 import os
+import re
+import random
 
-# Try to import pdfplumber for real PDF processing
+# ------------------------------------------------------------
+# PDF LIBRARY
+# ------------------------------------------------------------
 try:
     import pdfplumber
-    HAS_PDFPLUMBER = True
+    HAS_PDF = True
 except ImportError:
-    HAS_PDFPLUMBER = False
-    print("⚠️  pdfplumber not installed. Install with: pip install pdfplumber")
+    HAS_PDF = False
+
+# ------------------------------------------------------------
+# OPTIONAL: wordninja for dictionary-based word segmentation
+# Falls back gracefully if not installed.
+# Install: pip install wordninja
+# ------------------------------------------------------------
+try:
+    import wordninja
+    HAS_WORDNINJA = True
+except ImportError:
+    HAS_WORDNINJA = False
 
 
+# ------------------------------------------------------------
+# WORD SEGMENTATION (FIX point 1)
+# ------------------------------------------------------------
+def segment_merged_token(token: str) -> str:
+    """
+    Split a merged lowercase token into dictionary words using wordninja.
+    Only applied to tokens that look like merged words (long, no spaces,
+    all lowercase or mixed without uppercase transitions).
+    Falls back to the midpoint heuristic if wordninja is unavailable.
+    """
+    # Don't touch short tokens, URLs, numbers, or tokens with existing spaces
+    if len(token) < 10 or " " in token or "/" in token or token[0].isdigit():
+        return token
+
+    # Only process all-lowercase or nearly-all-lowercase tokens
+    lower_ratio = sum(1 for c in token if c.islower()) / max(len(token), 1)
+    if lower_ratio < 0.85:
+        return token
+
+    if HAS_WORDNINJA:
+        words = wordninja.split(token)
+        # Sanity check: reject if split produced too many 1-char fragments
+        if sum(1 for w in words if len(w) == 1) <= 2:
+            return " ".join(words)
+
+    # Fallback: split long runs at midpoint
+    if len(token) >= 14:
+        mid = len(token) // 2
+        return token[:mid] + " " + token[mid:]
+
+    return token
+
+
+def recover_missing_spaces(text: str) -> str:
+    """
+    Fix merged words in PDF-extracted text.
+    Strategy:
+      1. Handle camelCase / lowercase→uppercase transitions (structural)
+      2. Apply dictionary segmentation to remaining long merged tokens
+    """
+    if not text:
+        return ""
+
+    # camelCase and lowercase→uppercase transitions
+    text = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
+    text = re.sub(r"([a-z]{4,})([A-Z][a-z]+)", r"\1 \2", text)
+
+    # Space after punctuation if glued
+    text = re.sub(r"([.,;:!?])(?=[A-Za-z])", r"\1 ", text)
+
+    # Parenthesis spacing
+    text = re.sub(r"\(", " (", text)
+    text = re.sub(r"\)", ") ", text)
+
+    # Dictionary-based segmentation on each token
+    tokens   = text.split(" ")
+    repaired = [segment_merged_token(t) for t in tokens]
+    text     = " ".join(repaired)
+
+    # Collapse multiple spaces
+    text = re.sub(r"\s{2,}", " ", text)
+
+    return text
+
+
+# ------------------------------------------------------------
+# PDF TEXT CLEANER
+# ------------------------------------------------------------
+def clean_pdf_text(raw: str) -> str:
+    """Clean and normalize text extracted from PDFs."""
+    if not raw:
+        return ""
+
+    text = raw.replace("\r", "\n")
+
+    ligatures = {"ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl"}
+    for k, v in ligatures.items():
+        text = text.replace(k, v)
+
+    # De-hyphenate across newlines
+    text = re.sub(r"(\w+)-\s*\n(\w+)", r"\1\2", text)
+
+    # Normalize whitespace within lines
+    text = re.sub(r"[ \t]+", " ", text)
+
+    # Merge soft paragraph breaks
+    text = re.sub(r"\n(?=[a-z])", " ", text)
+    text = re.sub(r"(?<=[a-zA-Z]),\n", ", ", text)
+    text = re.sub(r"(?<=[a-z])\n(?=[A-Z])", " ", text)
+
+    # Collapse multiple newlines
+    text = re.sub(r"\n{2,}", "\n\n", text)
+
+    # Remove duplicate lines
+    lines = text.split("\n")
+    seen, cleaned = set(), []
+    for ln in lines:
+        stripped = ln.strip()
+        if stripped not in seen:
+            cleaned.append(ln)
+            seen.add(stripped)
+    text = "\n".join(cleaned)
+
+    # Space recovery
+    text = recover_missing_spaces(text)
+
+    text = re.sub(r"\s{2,}", " ", text)
+    text = re.sub(r"\n\s+", "\n", text)
+
+    return text.strip()
+
+
+# ------------------------------------------------------------
+# PAPER METADATA
+# ------------------------------------------------------------
 @dataclass
 class PaperMetadata:
-    """Extracted paper metadata."""
     title: str
     authors: list[str]
     abstract: str
@@ -34,280 +156,221 @@ class PaperMetadata:
     full_text: str = ""
 
 
+# ------------------------------------------------------------
+# INGESTION TOOL
+# ------------------------------------------------------------
 def ingest_paper(file_path: str) -> PaperMetadata:
     """
-    Ingest PDF and extract metadata using pdfplumber (real) or fallback (simulated).
-    
-    ✅ THIS TOOL WORKS
-    
-    Args:
-        file_path: Path to PDF file
-        
-    Returns:
-        PaperMetadata with title, authors, abstract, etc.
+    Extract metadata + cleaned text from PDF.
+
+    Dual extraction strategy:
+      - Page 1 uses extract_text() to preserve line structure for title extraction.
+      - All pages use extract_words(use_text_flow=True) for body text to handle
+        multi-column layouts. Falls back to extract_text() per page on failure.
     """
-    
-    if HAS_PDFPLUMBER and os.path.exists(file_path):
+    if HAS_PDF and os.path.exists(file_path):
         try:
             with pdfplumber.open(file_path) as pdf:
-                # Extract text from first few pages for metadata
-                first_page_text = pdf.pages[0].extract_text()
-                
-                # Simple extraction (in production, use ML/NLP)
-                # Try to find title (usually first line or centered text)
-                lines = first_page_text.split('\n')
-                title = lines[0] if lines else "Unknown"
-                
-                # Extract metadata if available
-                metadata = pdf.metadata or {}
-                year = metadata.get('CreationDate', 2017)
-                
-                pages = len(pdf.pages)
-                
-                return PaperMetadata(
-                    title=title[:100],  # Limit title length
-                    authors=["Author extraction from PDF not implemented"],
-                    abstract=first_page_text[:200] if first_page_text else "No abstract found",
-                    year=year if isinstance(year, int) else 2017,
-                    doi="extracted-from-pdf",
-                    pages=pages,
-                    full_text=first_page_text
+                # --- Page 1: line-structured for title ---
+                first_page_raw   = pdf.pages[0].extract_text() or "" if pdf.pages else ""
+                first_page_clean = clean_pdf_text(first_page_raw)
+
+                # --- All pages: word-flow for body text ---
+                pages_text = []
+                for page in pdf.pages:
+                    try:
+                        words = page.extract_words(
+                            x_tolerance=3,
+                            y_tolerance=3,
+                            keep_blank_chars=False,
+                            use_text_flow=True,
+                        )
+                        if words:
+                            pages_text.append(" ".join(w["text"] for w in words))
+                        else:
+                            pages_text.append(page.extract_text() or "")
+                    except Exception:
+                        pages_text.append(page.extract_text() or "")
+
+                raw_full  = "\n\n".join(pages_text)
+                full_text = clean_pdf_text(raw_full)
+
+                # --- Title from line-structured page 1 ---
+                title = "Unknown Title"
+                for line in first_page_clean.splitlines():
+                    stripped = line.strip()
+                    if stripped and len(stripped) > 5 and len(stripped) < 200:
+                        title = stripped
+                        break
+
+                # --- Abstract from body text ---
+                abstract = "No abstract found."
+                m = re.search(
+                    r"Abstract[:\s]+(.+?)(?:\n\n|Introduction|1\.)",
+                    full_text,
+                    flags=re.I | re.S,
                 )
-        except Exception as e:
-            print(f"⚠️  Error reading PDF {file_path}: {e}")
-            return _get_simulated_paper()
-    else:
-        # Fallback: simulated paper
-        return _get_simulated_paper()
+                if m:
+                    abstract = m.group(1).strip()
+
+                # --- Year ---
+                meta  = pdf.metadata or {}
+                year  = 0
+                cdate = meta.get("CreationDate") or meta.get("ModDate")
+                if isinstance(cdate, str) and cdate.startswith("D:"):
+                    try:
+                        year = int(cdate[2:6])
+                    except Exception:
+                        year = 0
+
+                return PaperMetadata(
+                    title=title[:200],
+                    authors=[],
+                    abstract=abstract[:2000],
+                    year=year,
+                    doi="",
+                    pages=len(pdf.pages),
+                    full_text=full_text,
+                )
+
+        except Exception:
+            return _neutral_fallback()
+
+    return _neutral_fallback()
 
 
-def _get_simulated_paper() -> PaperMetadata:
-    """Fallback simulated paper data."""
+def _neutral_fallback() -> PaperMetadata:
     return PaperMetadata(
-        title="Attention Is All You Need",
-        authors=["Vaswani, A.", "Shazeer, N.", "Parmar, N.", "Jones, L."],
-        abstract="The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. "
-                "We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.",
-        year=2017,
-        doi="10.48550/arXiv.1706.03762",
-        pages=15,
-        full_text="The Transformer architecture has become the foundation for modern NLP and beyond..."
+        title="Unknown Title",
+        authors=[],
+        abstract="No abstract extracted.",
+        year=0,
+        doi="",
+        pages=0,
+        full_text="",
     )
 
 
+# ------------------------------------------------------------
+# SEARCH TOOL
+# ------------------------------------------------------------
 def search_content(paper: PaperMetadata, query: str) -> list[dict]:
-    """
-    Search paper content for relevant sections.
-    
-    ✅ THIS TOOL WORKS
-    
-    Args:
-        paper: The paper metadata
-        query: Search query
-        
-    Returns:
-        List of matching sections with context
-    """
-    # Simulate searching in paper text
-    sections = [
-        {
-            "section": "Abstract",
-            "content": paper.abstract,
-            "relevance": 0.95 if query.lower() in paper.abstract.lower() else 0.7
-        },
-        {
-            "section": "Introduction",
-            "content": "Recurrent neural networks, long-short-term memory and gated recurrent units have become firmly established as state of the art approaches in sequence modeling.",
-            "relevance": 0.88
-        },
-        {
-            "section": "Model Architecture",
-            "content": "The Transformer follows an encoder-decoder structure using stacked self-attention and point-wise fully connected layers.",
-            "relevance": 0.92
-        },
-        {
-            "section": "Experimental Results",
-            "content": "Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, establishing a new single-model state-of-the-art.",
-            "relevance": 0.85
-        }
-    ]
-    
-    # Filter by relevance
-    return [s for s in sections if s["relevance"] > 0.5]
+    text  = paper.full_text.lower()
+    query = query.lower()
+    results = []
+    if query in text:
+        idx     = text.find(query)
+        snippet = paper.full_text[max(0, idx - 150): idx + 150]
+        results.append({"section": "Context", "content": snippet, "relevance": 0.95})
+    return results
 
 
+# ------------------------------------------------------------
+# FINDINGS TOOL
+# ------------------------------------------------------------
 def extract_key_findings(paper: PaperMetadata) -> dict[str, Any]:
-    """
-    Extract and summarize key findings from paper.
-    
-    ✅ THIS TOOL WORKS
-    
-    Args:
-        paper: The paper metadata
-        
-    Returns:
-        Dictionary of key findings and contributions
-    """
+    text      = (paper.abstract or "") + "\n" + (paper.full_text or "")
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    interesting = [
+        s for s in sentences
+        if any(k in s.lower() for k in ["improve", "achieve", "accuracy", "%", "throughput"])
+    ]
     return {
-        "main_contribution": "Introduction of Transformer architecture based solely on attention mechanisms",
-        "key_results": [
-            "Achieves 28.4 BLEU on WMT 2014 English-to-German",
-            "Outperforms previous state-of-the-art by 2+ BLEU",
-            "Significantly faster training than RNNs",
-            "Better parallelization during training"
-        ],
-        "impact_score": 9.8,  # Out of 10
-        "citations_estimated": 150000,
-        "novelty": "Architecture is fundamentally different - attention-only vs recurrent",
-        "methodology": "Encoder-decoder with multi-head self-attention"
+        "main_contribution": (paper.abstract or paper.title)[:500],
+        "key_results":       interesting[:3],
+        "impact_score":      6.5 if interesting else 5.0,
+        "citations_estimated": 0,
     }
 
 
+# ------------------------------------------------------------
+# CITATION VALIDATION (SIMULATED)
+# ------------------------------------------------------------
 def validate_citations(paper: PaperMetadata, sample_size: int = 5) -> dict[str, Any]:
-    """
-    Validate citations and check reference integrity.
-    
-    ⚠️ THIS TOOL MAY FAIL (~5% of time with database timeout)
-    
-    Args:
-        paper: The paper metadata
-        sample_size: Number of citations to validate
-        
-    Returns:
-        Validation results with error detection, or raises exception on timeout
-    """
-    # Realistically fail ~5% of the time (simulating database timeout)
     if random.random() < 0.05:
-        raise TimeoutError("Citation database connection timeout - unable to complete validation")
-    
-    # Success path
-    validation_results = {
-        "total_citations": 142,
-        "validated": 139,
-        "invalid_dois": 2,
-        "unreachable_urls": 1,
-        "validation_rate": 0.979,
-        "issues": [
-            {"citation_num": 23, "issue": "Invalid DOI format", "severity": "warning"},
-            {"citation_num": 87, "issue": "URL returns 404", "severity": "warning"},
-            {"citation_num": 45, "issue": "Outdated reference", "severity": "info"}
-        ]
-    }
-    
-    return validation_results
-
-
-def map_citation_relationships(paper: PaperMetadata) -> dict[str, Any]:
-    """
-    Map relationships between cited papers.
-    
-    ✅ THIS TOOL WORKS (but only called if validate_citations succeeds)
-    
-    Args:
-        paper: The paper metadata
-        
-    Returns:
-        Citation graph with relationships
-    """
+        raise TimeoutError("Citation DB timeout")
     return {
-        "total_relationships": 156,
-        "clusters": [
-            {
-                "name": "Sequence-to-Sequence Models",
-                "papers": 34,
-                "centrality": 0.92,
-                "key_papers": ["Sutskever et al. 2014", "Cho et al. 2014"]
-            },
-            {
-                "name": "Neural Machine Translation",
-                "papers": 28,
-                "centrality": 0.88,
-                "key_papers": ["Bahdanau et al. 2015", "Luong et al. 2015"]
-            },
-            {
-                "name": "Attention Mechanisms",
-                "papers": 41,
-                "centrality": 0.95,
-                "key_papers": ["Vaswani et al. 2017 (this paper)", "Parikh et al. 2016"]
-            }
-        ],
-        "orphaned_citations": 3,
-        "self_citations": 0,
-        "highly_cited": [
-            {"paper": "Sutskever et al. 2014", "citations": 12},
-            {"paper": "Bahdanau et al. 2015", "citations": 10}
-        ]
+        "total_citations": 42,
+        "validated":       40,
+        "validation_rate": 40 / 42,
+        "issues":          [],
     }
 
 
+# ------------------------------------------------------------
+# RELATIONSHIP MAP
+# ------------------------------------------------------------
+def map_citation_relationships(paper: PaperMetadata) -> dict[str, Any]:
+    return {
+        "total_relationships": 12,
+        "clusters": [
+            {"name": "Cluster A", "papers": 5},
+            {"name": "Cluster B", "papers": 4},
+        ],
+    }
+
+
+# ------------------------------------------------------------
+# SYNTHESIS TOOL
+# ------------------------------------------------------------
 def synthesize_analysis(findings: dict, citations: dict, relationships: dict) -> str:
-    """
-    Synthesize all analysis into a coherent summary.
-    
-    ✅ THIS TOOL WORKS (gracefully handles missing data)
-    
-    Args:
-        findings: Key findings from paper
-        citations: Citation validation results (may be empty if validation failed)
-        relationships: Citation relationship map (may be empty if validation failed)
-        
-    Returns:
-        Synthesized analysis summary
-    """
-    citation_rate = citations.get('validation_rate', 'N/A')
-    num_clusters = len(relationships.get('clusters', []))
-    
-    # Format citation rate nicely
-    if isinstance(citation_rate, float):
-        citation_str = f"{citation_rate:.1%}"
-    else:
-        citation_str = "unknown (validation failed)"
-    
     return (
-        f"This seminal work ({findings.get('novelty', 'breakthrough paper')}) introduces {findings.get('main_contribution', 'N/A')}. "
-        f"With {findings.get('citations_estimated', 'N/A')} estimated citations, it has become foundational in modern ML. "
-        f"Citation validation achieved {citation_str} integrity. "
-        f"The paper's contributions span {num_clusters} major research clusters. "
-        f"Key impact: {findings.get('key_results', ['N/A'])[0]}"
+        f"Contribution: {findings.get('main_contribution')}. "
+        f"Impact score: {findings.get('impact_score')}. "
+        f"Citation validation: {citations.get('validation_rate', 'N/A')}. "
+        f"Clusters: {len(relationships.get('clusters', []))}."
     )
 
 
-# Tool definitions that agents can use
+# ------------------------------------------------------------
+# TOOL REGISTRATION
+# ------------------------------------------------------------
 RESEARCH_TOOLS = {
     "ingest_paper": {
-        "func": ingest_paper,
-        "description": "Ingest PDF paper and extract metadata (title, authors, abstract, DOI, page count) ✅ RELIABLE",
-        "inputs": ["file_path"],
-        "returns": "PaperMetadata object with title, authors, abstract, year, doi, pages"
+        "func":        ingest_paper,
+        "description": "Extract and clean text from a PDF file. ONLY param: file_path (str).",
+        "inputs":      ["file_path"],
     },
     "search_content": {
-        "func": search_content,
-        "description": "Search paper content for relevant sections matching a query ✅ RELIABLE",
-        "inputs": ["paper", "query"],
-        "returns": "List of dicts with 'section', 'content', 'relevance'"
+        "func":        search_content,
+        "description": "Search cleaned paper text. ONLY params: paper (PaperMetadata), query (str).",
+        "inputs":      ["paper", "query"],
     },
     "extract_findings": {
-        "func": extract_key_findings,
-        "description": "Extract and summarize key findings, results, and contributions from the paper ✅ RELIABLE",
-        "inputs": ["paper"],
-        "returns": "Dict with main_contribution, key_results, impact_score, citations_estimated"
+        "func":        extract_key_findings,
+        "description": (
+            "Extract key findings from an already-ingested paper. "
+            "ONLY param: paper (PaperMetadata). "
+            "Do NOT pass file_path. The paper object is injected automatically."
+        ),
+        "inputs":      ["paper"],
     },
     "validate_citations": {
-        "func": validate_citations,
-        "description": "Validate citations and check reference integrity. ⚠️ MAY TIMEOUT (~5% of time - database connection issue)",
-        "inputs": ["paper", "sample_size"],
-        "returns": "Dict with total_citations, validated count, validation_rate, issues"
+        "func":        validate_citations,
+        "description": (
+            "Validate citations in a paper. "
+            "ONLY params: paper (PaperMetadata), sample_size (int, optional). "
+            "Use this tool FIRST when the goal involves citation validation."
+        ),
+        "inputs":      ["paper", "sample_size"],
     },
     "map_relationships": {
-        "func": map_citation_relationships,
-        "description": "Map relationships between cited papers and identify research clusters ✅ RELIABLE (if citations validated)",
-        "inputs": ["paper"],
-        "returns": "Dict with clusters, relationships, centrality scores"
+        "func":        map_citation_relationships,
+        "description": (
+            "Map citation relationships in a paper. "
+            "ONLY param: paper (PaperMetadata). "
+            "Use this tool AFTER validate_citations, not instead of it."
+        ),
+        "inputs":      ["paper"],
     },
     "synthesize": {
-        "func": synthesize_analysis,
-        "description": "Synthesize all analysis into coherent academic summary ✅ RELIABLE (handles missing data gracefully)",
-        "inputs": ["findings", "citations", "relationships"],
-        "returns": "String with comprehensive analysis summary"
-    }
+        "func":        synthesize_analysis,
+        "description": (
+            "Produce final synthesis text. "
+            "ONLY params: findings (dict), citations (dict), relationships (dict). "
+            "Do NOT pass paper, file_path, or sample_size. "
+            "All params are injected automatically from pipeline state."
+        ),
+        "inputs":      ["findings", "citations", "relationships"],
+    },
 }

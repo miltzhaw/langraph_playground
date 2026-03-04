@@ -1,6 +1,6 @@
 # Causal DAG Summary
 
-**Events:** 20 | **Causal Edges:** 16
+**Events:** 20 | **Causal Edges:** 15
 
 ## Events by Type
 
@@ -15,5 +15,5 @@
 
 | Reason | Count |
 |---|---|
-| inferred_by_proximity | 8 |
+| inferred_by_proximity | 7 |
 | intra_agent_sequence | 8 |

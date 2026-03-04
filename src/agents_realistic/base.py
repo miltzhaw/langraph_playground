@@ -1,181 +1,169 @@
-from langchain_community.llms import Ollama
-from langchain_core.tools import tool
+from langchain_ollama import OllamaLLM  # FIX: updated from deprecated langchain_community.llms.Ollama
 from src.agents.simple import get_collector
-from typing import Dict, List, Optional
-import json
 import time
 import re
 
+
 class MistralAgent:
-    """LLM-powered agent using Mistral via Ollama"""
-    
+    """LLM-powered agent using Mistral via Ollama (STRICT mode: LLM only chooses tools)."""
+
     def __init__(self, agent_id: str, role: str, ollama_host: str = "http://ollama:11434"):
         self.agent_id = agent_id
         self.role = role
         self.tools = []
         self.decision_history = []
-        
-        self.llm = Ollama(
+
+        # FIX: OllamaLLM replaces deprecated Ollama
+        self.llm = OllamaLLM(
             model="mistral",
             base_url=ollama_host,
-            temperature=0
+            temperature=0,
         )
-    
+
     def register_tool(self, tool_func):
-        """Register a tool this agent can use"""
         self.tools.append(tool_func)
-    
+
     def _build_system_prompt(self) -> str:
-        """Build system context for the agent"""
-        tool_list = "\n".join([
-            f"- {t.name}: {t.description}"
-            for t in self.tools
-        ])
-        
+        tools_lines = []
+        for t in self.tools:
+            inputs = f" | inputs: {', '.join(t.inputs)}" if getattr(t, "inputs", None) else ""
+            tools_lines.append(f"- {t.name}: {t.description}{inputs}")
+
+        tool_list = "\n".join(tools_lines) if tools_lines else "None"
+
         return f"""You are {self.agent_id}, a {self.role} agent.
 
 Available tools:
-{tool_list if tool_list else "None"}
+{tool_list}
+
+STRICT MODE:
+You ONLY decide which tool to use and with which parameters.
+NEVER summarize, explain, or analyze the paper.
+ONLY use the parameter names listed for each tool. Do NOT invent extra parameters.
 
 When using a tool, format EXACTLY as:
-TOOL_NAME: search_documents
-PARAM_query: machine learning
 
-OR
+TOOL_NAME: <tool_name>
+PARAM_<input_name>: <value>
 
-TOOL_NAME: summarize_content
-PARAM_content: some text here
+Examples:
 
-Always provide the parameter value after the colon on the same line.
-Be concise."""
-    
-    def _parse_tool_call(self, response: str) -> tuple:
-        """Parse LLM response for tool usage
-        
-        Returns: (tool_name, params_dict) or (None, {})
+TOOL_NAME: ingest_paper
+PARAM_file_path: papers/paper.pdf
+
+TOOL_NAME: search_content
+PARAM_query: methodology
+
+If no tool is needed, reply simply: "NO_TOOL".
+"""
+
+    def _parse_tool_call(self, response: str):
         """
-        lines = response.split('\n')
+        Parse the FIRST tool call block in the LLM response.
+
+        FIX (point 3): Mistral often plans a multi-step chain and writes
+        several TOOL_NAME blocks. Previously the last block was used,
+        which could be an irrelevant downstream tool. We now capture only
+        the first block — the tool the agent should act on immediately.
+        """
+        lines     = response.split("\n")
         tool_name = None
-        params = {}
-        
+        params    = {}
+        in_block  = False
+
         for line in lines:
-            if 'TOOL_NAME:' in line:
-                tool_name = line.split('TOOL_NAME:')[1].strip()
-            elif 'PARAM_' in line:
-                # Parse PARAM_key: value
-                match = re.match(r'PARAM_(\w+):\s*(.*)', line)
-                if match:
-                    key, value = match.groups()
-                    params[key] = value.strip()
-        
+            if "TOOL_NAME:" in line:
+                if in_block:
+                    # Second block found — stop, we only want the first
+                    break
+                tool_name = line.split("TOOL_NAME:")[1].strip()
+                in_block  = True
+            elif in_block and "PARAM_" in line:
+                m = re.match(r"PARAM_(\w+):\s*(.*)", line)
+                if m:
+                    params[m.group(1)] = m.group(2).strip()
+
         return tool_name, params
-    
-    def reason_and_act(self, state: Dict, goal: str) -> Dict:
-        """Main agent action with LLM reasoning"""
+
+    def reason_and_act(self, state: dict, goal: str) -> dict:
         collector = get_collector()
-        
-        # 1. GOAL_CREATED event
+
         collector.emit("GOAL_CREATED", self.agent_id, {
             "goal": goal,
             "role": self.role,
             "tools_available": [t.name for t in self.tools],
-            "timestamp": time.time()
+            "timestamp": time.time(),
         })
-        
-        # 2. REASONING_STEP: Agent thinks
+
         collector.emit("REASONING_STEP", self.agent_id, {
             "step": "analyze_goal",
             "goal": goal,
-            "available_tools": [t.name for t in self.tools]
+            "available_tools": [t.name for t in self.tools],
         })
-        
-        # Build prompt
+
         system_prompt = self._build_system_prompt()
         user_prompt = f"Task: {goal}\n\nWhat should you do?"
-        
+
         try:
-            # Call LLM
-            response = self.llm.invoke(f"{system_prompt}\n\n{user_prompt}")
-            reasoning = response.strip() if isinstance(response, str) else response
-            
-            self.decision_history.append({
-                "goal": goal,
-                "reasoning": reasoning[:200]
-            })
-            
+            response = self.llm.invoke(system_prompt + "\n\n" + user_prompt)
+            reasoning = response.strip() if isinstance(response, str) else str(response)
             state["last_reasoning"] = reasoning
-            
-            # Parse tool call
+
             tool_name, params = self._parse_tool_call(reasoning)
-            
-            if tool_name:
+
+            if tool_name and tool_name != "NO_TOOL":
                 tool = next((t for t in self.tools if t.name == tool_name), None)
-                
-                if tool:
-                    # 3. TOOL_INVOKED event
-                    collector.emit("TOOL_INVOKED", self.agent_id, {
-                        "tool": tool.name,
-                        "params": params,
-                        "reasoning_snippet": reasoning[:150]
-                    })
-                    
-                    try:
-                        # Execute tool with parsed params
-                        tool_result = tool.invoke(params)
-                        state["tool_result"] = tool_result
-                        
-                        # 4. REASONING_STEP: Process result
-                        collector.emit("REASONING_STEP", self.agent_id, {
-                            "step": "process_tool_result",
-                            "tool": tool.name,
-                            "result_length": len(str(tool_result))
-                        })
-                        
-                        # 5. GOAL_COMPLETED event
-                        collector.emit("GOAL_COMPLETED", self.agent_id, {
-                            "result": str(tool_result)[:100],
-                            "tool_used": tool.name,
-                            "status": "success"
-                        })
-                        
-                    except Exception as e:
-                        # 5. GOAL_FAILED event
-                        collector.emit("GOAL_FAILED", self.agent_id, {
-                            "reason": "tool_execution_error",
-                            "tool": tool.name,
-                            "error": str(e),
-                            "params": params,
-                            "status": "failed"
-                        })
-                        state["error"] = str(e)
-                else:
-                    # Tool not found
+                if not tool:
                     collector.emit("GOAL_FAILED", self.agent_id, {
                         "reason": "tool_not_found",
                         "requested_tool": tool_name,
-                        "available_tools": [t.name for t in self.tools]
+                        "available_tools": [t.name for t in self.tools],
                     })
+                    return state
+
+                collector.emit("TOOL_INVOKED", self.agent_id, {
+                    "tool": tool.name,
+                    "params": params,
+                    "reasoning_snippet": reasoning[:200],
+                })
+
+                try:
+                    result = tool.invoke(params, context=state)
+                    state["tool_result"] = result
+
+                    collector.emit("REASONING_STEP", self.agent_id, {
+                        "step": "process_tool_result",
+                        "tool": tool_name,
+                        "result_length": len(str(result)),
+                    })
+
+                    collector.emit("GOAL_COMPLETED", self.agent_id, {
+                        "result": str(result)[:100],
+                        "tool_used": tool_name,
+                        "status": "success",
+                    })
+
+                except Exception as e:
+                    collector.emit("GOAL_FAILED", self.agent_id, {
+                        "reason": "tool_execution_error",
+                        "tool": tool_name,
+                        "error": str(e),
+                        "params": params,
+                    })
+                    state["error"] = str(e)
+
             else:
-                # No tool used
-                collector.emit("REASONING_STEP", self.agent_id, {
-                    "step": "decision_made",
-                    "decision": "no_tool_needed",
-                    "reasoning": reasoning[:150]
-                })
-                
                 collector.emit("GOAL_COMPLETED", self.agent_id, {
-                    "result": reasoning[:100],
+                    "result": "NO_TOOL",
                     "tool_used": None,
-                    "status": "success"
+                    "status": "success",
                 })
-        
+
         except Exception as e:
-            # LLM error
             collector.emit("GOAL_FAILED", self.agent_id, {
                 "reason": "llm_error",
                 "error": str(e),
-                "error_type": type(e).__name__
             })
             state["error"] = str(e)
-        
+
         return state

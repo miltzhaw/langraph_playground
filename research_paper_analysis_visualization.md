@@ -2,15 +2,15 @@
 
 ```mermaid
 graph TD
-    ac74d7eb["GOAL_CREATED (ac74d7eb)"]
-    81494bce["REASONING_STEP (81494bce)"]
-    900abf16["TOOL_INVOKED (900abf16)"]
-    395ab8d2["REASONING_STEP (395ab8d2)"]
-    8400b4d6["GOAL_COMPLETED (8400b4d6)"]
-    395ab8d2 --> 8400b4d6
-    900abf16 --> 395ab8d2
-    ac74d7eb --> 81494bce
-    81494bce --> 900abf16
+    8b1511e2["GOAL_CREATED (8b1511e2)"]
+    ef93a76e["REASONING_STEP (ef93a76e)"]
+    0b118a73["TOOL_INVOKED (0b118a73)"]
+    ddd144d7["REASONING_STEP (ddd144d7)"]
+    c3d2e83c["GOAL_COMPLETED (c3d2e83c)"]
+    ddd144d7 --> c3d2e83c
+    8b1511e2 --> ef93a76e
+    0b118a73 --> ddd144d7
+    ef93a76e --> 0b118a73
 ```
 
 
@@ -18,15 +18,15 @@ graph TD
 
 ```mermaid
 graph TD
-    d8d1ab15["GOAL_CREATED (d8d1ab15)"]
-    b4689343["REASONING_STEP (b4689343)"]
-    1495adeb["TOOL_INVOKED (1495adeb)"]
-    fa176302["REASONING_STEP (fa176302)"]
-    9391e759["GOAL_COMPLETED (9391e759)"]
-    1495adeb --> fa176302
-    d8d1ab15 --> b4689343
-    b4689343 --> 1495adeb
-    fa176302 --> 9391e759
+    940febe4["GOAL_CREATED (940febe4)"]
+    726efe40["REASONING_STEP (726efe40)"]
+    080b3105["TOOL_INVOKED (080b3105)"]
+    6238a8c9["REASONING_STEP (6238a8c9)"]
+    9734f355["GOAL_COMPLETED (9734f355)"]
+    080b3105 --> 6238a8c9
+    6238a8c9 --> 9734f355
+    726efe40 --> 080b3105
+    940febe4 --> 726efe40
 ```
 
 
@@ -34,15 +34,14 @@ graph TD
 
 ```mermaid
 graph TD
-    eb56e2bc["GOAL_CREATED (eb56e2bc)"]
-    9759ce2a["REASONING_STEP (9759ce2a)"]
-    62c4ebe0["TOOL_INVOKED (62c4ebe0)"]
-    cd03cca3["REASONING_STEP (cd03cca3)"]
-    a6b8e7df["GOAL_COMPLETED (a6b8e7df)"]
-    eb56e2bc --> 9759ce2a
-    cd03cca3 --> a6b8e7df
-    9759ce2a --> 62c4ebe0
-    62c4ebe0 --> cd03cca3
+    54ab40b9["GOAL_CREATED (54ab40b9)"]
+    7b6b74ae["REASONING_STEP (7b6b74ae)"]
+    b091aa55["TOOL_INVOKED (b091aa55)"]
+    e6fb3f93["REASONING_STEP (e6fb3f93)"]
+    bd37215f["GOAL_COMPLETED (bd37215f)"]
+    54ab40b9 --> 7b6b74ae
+    7b6b74ae --> b091aa55
+    e6fb3f93 --> bd37215f
 ```
 
 
@@ -50,13 +49,13 @@ graph TD
 
 ```mermaid
 graph TD
-    d1cf9da7["GOAL_CREATED (d1cf9da7)"]
-    0bca3b47["REASONING_STEP (0bca3b47)"]
-    3d97f921["TOOL_INVOKED (3d97f921)"]
-    a3cfd26c["REASONING_STEP (a3cfd26c)"]
-    dbb32835["GOAL_COMPLETED (dbb32835)"]
-    d1cf9da7 --> 0bca3b47
-    0bca3b47 --> 3d97f921
-    3d97f921 --> a3cfd26c
-    a3cfd26c --> dbb32835
+    e9f3d731["GOAL_CREATED (e9f3d731)"]
+    25ed8f95["REASONING_STEP (25ed8f95)"]
+    b484b959["TOOL_INVOKED (b484b959)"]
+    72325ec7["REASONING_STEP (72325ec7)"]
+    d8d61f3c["GOAL_COMPLETED (d8d61f3c)"]
+    b484b959 --> 72325ec7
+    25ed8f95 --> b484b959
+    e9f3d731 --> 25ed8f95
+    72325ec7 --> d8d61f3c
 ```

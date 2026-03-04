@@ -36,7 +36,7 @@ See `docs/QUICKSTART.md` for all 12 examples.
 | Metric | Result | Status |
 |--------|--------|--------|
 | Cascading delegation (3 agents) reconstruction accuracy | 100% | ✅ |
-| Real LLM multi-agent reasoning (4 agents, Example 12) | 16 events, 12 edges | ✅ |
+| Real LLM multi-agent reasoning (4 agents, Example 12) | 20 events, 15 edges | ✅ |
 | Essential event types | 2 (GOAL_DELEGATED, REASONING_STEP) | ✅ |
 | Failure detection rate | 100% | ✅ |
 | Database persistence | Working | ✅ |
@@ -162,7 +162,7 @@ open realistic_dag_interactive.html
 
 ### Example 12: Research Paper Analysis Pipeline
 
-**Demonstrates real-world multi-agent observability with independent LLM reasoning and realistic failures**
+**Demonstrates real-world multi-agent observability with independent LLM reasoning and robust tool dispatch.**
 
 A 4-agent pipeline processes research papers:
 
@@ -176,6 +176,9 @@ Each agent uses **real Mistral LLM reasoning** to independently decide what to d
 #### Quick Start
 
 ```bash
+# Install wordninja for PDF text cleaning (one-time)
+docker exec spectra-app pip install wordninja
+
 # Analyze a research paper with 4-agent workflow
 docker exec spectra-app python examples/12_research_paper_analysis.py papers/paper.pdf
 
@@ -191,66 +194,81 @@ open research_paper_analysis_interactive.html
 #### Key Features
 
 ✅ **Real LLM Reasoning** - Each agent independently reasons about tasks using Mistral  
-✅ **Complete Event Tracing** - All 16+ events captured (GOAL_CREATED → REASONING_STEP → TOOL_INVOKED → GOAL_FAILED/COMPLETED)  
+✅ **Complete Event Tracing** - 20 events captured per run (GOAL_CREATED → REASONING_STEP → TOOL_INVOKED → GOAL_COMPLETED)  
 ✅ **Tool Invocation Logging** - LLM decisions logged with reasoning snippets  
-✅ **Realistic Failures** - Tool failures handled gracefully without cascading crashes  
-✅ **Causal DAG** - 12+ causal edges reconstructed showing reasoning→decision→failure chains  
+✅ **Robust Tool Dispatch** - Param whitelisting and context injection prevent LLM hallucinated arguments from causing failures  
+✅ **Explicit Agent Goals** - Each agent receives a precise goal string to prevent multi-step chain planning drift  
+✅ **Causal DAG** - 15 causal edges reconstructed showing reasoning→decision→outcome chains  
 ✅ **Full Visualization** - Interactive HTML, Mermaid, Graphviz, and summary formats  
+
+#### Known LLM Behaviour (Mistral 7B)
+
+When using Mistral, the following behaviours are observed and handled:
+
+- **Multi-step planning in a single response** — Mistral often writes a chain of `TOOL_NAME:` blocks in one response. Only the first block is parsed and executed; subsequent blocks are discarded.
+- **Hallucinated param values** — The LLM may pass placeholder strings like `<result of ingest_paper>` or fabricated object literals. These are stripped by the param whitelist; real objects are always injected from pipeline state.
+- **Tool selection drift** — Without explicit goal strings, agents may select preparation tools (e.g. `validate_citations`) when the goal calls for a downstream tool (e.g. `synthesize`). Each node's goal string is written to prevent this.
 
 #### Real Output Example
 
 ```
-COLLECTED EVENTS (16 total)
-1. [GOAL_CREATED]     ingestion_agent: Extract metadata from papers/paper.pdf
-2. [REASONING_STEP]   ingestion_agent: Analyzes goal and available tools
-3. [TOOL_INVOKED]     ingestion_agent: Decides to call ingest_paper
-4. [GOAL_FAILED]      ingestion_agent: Tool fails, but system continues
+COLLECTED EVENTS (20 total)
+1.  [GOAL_CREATED]     ingestion_agent: Extract metadata from papers/paper.pdf
+2.  [REASONING_STEP]   ingestion_agent: Analyzes goal and available tools
+3.  [TOOL_INVOKED]     ingestion_agent: ingest_paper(file_path=papers/paper.pdf)
+4.  [REASONING_STEP]   ingestion_agent: Processes tool result
+5.  [GOAL_COMPLETED]   ingestion_agent: Metadata extracted
+6.  [GOAL_CREATED]     analysis_agent:  The paper has already been ingested. Call extract_findings...
+7.  [REASONING_STEP]   analysis_agent:  Analyzes goal
+8.  [TOOL_INVOKED]     analysis_agent:  extract_findings(paper=<injected>)
+9.  [REASONING_STEP]   analysis_agent:  Processes tool result
+10. [GOAL_COMPLETED]   analysis_agent:  Findings extracted
 ...
-16. [GOAL_COMPLETED]  synthesis_agent: Final report generated
+20. [GOAL_COMPLETED]   synthesis_agent: Final report generated
 
 CAUSAL DAG RECONSTRUCTION
-Events: 16
-Causal edges: 12
+Events: 20
+Causal edges: 15
 Agents: 4 (all reasoning independently)
+Failures: 0
 
 RESULTS
-📄 Paper: (extracted from your PDF)
-📊 Analysis: Key findings and impact score
-✅ Citations: Validation rate
-📝 Synthesis: Comprehensive summary
+📄 Paper: future internet Article The Cloud-to-Edge-to-IoT Continuum... (2023)
+📊 Analysis: When a natural or human disaster occurs time is critical...
+✅ Citations: 95.2% validated
+🔗 Citation Clusters: Cluster A (5 papers), Cluster B (4 papers)
+📝 Synthesis: Contribution: When a natural or human disaster occurs...
 ```
 
 #### Key Insights
 
 This example shows **why observability matters** in multi-agent systems:
 
-- **Multiple agents reason independently** - Each uses LLM, not scripted logic
-- **Tool failures happen** - But you can see exactly what was attempted and why
-- **System degrades gracefully** - Synthesis completes with partial data when citation validation fails
-- **Complete audit trail** - Every decision, reasoning step, and failure is logged
-- **Causal reconstruction** - You can trace the entire story: why each agent did what, and where failures occurred
+- **Multiple agents reason independently** - Each uses the LLM, not scripted logic
+- **LLM hallucinations are contained** - Hallucinated parameters are intercepted at the tool dispatch layer before reaching functions
+- **System is robust** - Pipeline nodes have direct fallbacks independent of agent tool events
+- **Complete audit trail** - Every decision, reasoning step, and tool invocation is logged
+- **Causal reconstruction** - You can trace the entire story: why each agent did what it did
 
 #### Without SPECTRA
 
 ```
 ❌ Workflow failed
-❌ Tool invocation failed
+❌ Tool invocation failed with unexpected keyword argument
 ❌ Analysis incomplete
 ```
 
 #### With SPECTRA
 
 ```
-✅ ingestion_agent reasoned about metadata extraction
-✅ ingest_paper was invoked (LLM saw it as the right tool)
-⚠️  Tool failed (SimpleTool missing .invoke())
-✅ System fell back to direct execution
-✅ Analysis agent reasoned and executed search
-✅ synthesis_agent completed report with available data
-✅ Workflow finished successfully
+✅ ingestion_agent extracted paper metadata with correct file path
+✅ analysis_agent called extract_findings directly (not ingest_paper)
+✅ citation_agent called validate_citations first (not map_relationships)
+✅ synthesis_agent called synthesize with injected state (not placeholder strings)
+✅ 0 failures — full pipeline completed
 
-Here's the causal path showing what happened and why:
-GOAL → REASONING → TOOL_INVOKED → FAILURE → FALLBACK → SUCCESS
+Causal path (per agent):
+GOAL_CREATED → REASONING_STEP → TOOL_INVOKED → REASONING_STEP → GOAL_COMPLETED
 ```
 
 #### Use Cases
@@ -271,8 +289,8 @@ See [Research Paper Analysis Documentation](docs/RESEARCH_PAPER_ANALYSIS.md) for
 | Tool invocation | Injected | ✅ LLM-driven | ✅ LLM-driven |
 | Decision logic | Predetermined | ✅ Dynamic | ✅ Dynamic |
 | Failure modes | Artificial | ✅ Realistic | ✅ Realistic |
-| Event count | 5-10 per scenario | 15-20 | 16+ |
-| Causal edges | 3-8 | 10-15 | 12+ |
+| Event count | 5-10 per scenario | 15-20 | 20 |
+| Causal edges | 3-8 | 10-15 | 15 |
 | Agents | 2-3 | 4 | 4 |
 | Execution time | <1s | 60-90s | 60-90s |
 | Production relevance | Proof-of-concept | High | High |
@@ -369,6 +387,8 @@ See `docs/evaluation_results.md` for detailed results including:
 
 ✅ **Real LLM Integration:** Works with actual Mistral LLM reasoning and tool invocation
 
+✅ **LLM Hallucination Contained:** Param whitelisting and context injection prevent hallucinated arguments from causing runtime failures
+
 ✅ **Scalable Design:** Rules work for 4 agents; extendable to larger systems
 
 ## Limitations
@@ -377,15 +397,20 @@ See `docs/evaluation_results.md` for detailed results including:
 - Example 12 uses Mistral LLM; Examples 1-10 use synthetic scenarios
 - 4 agents tested (Example 12); 3 agents maximum in synthetic examples
 - Explicit causality only (no implicit dependency inference)
+- Mistral 7B plans multi-step tool chains but the architecture executes one tool per agent turn; a larger or instruction-tuned model would improve single-step tool selection accuracy
+- PDF text quality depends on source encoding; multi-column or scanned PDFs may produce merged words requiring `wordninja` for correction
 
 ## Next Steps
 
 - [x] Expand to real LLM-based agent execution (Example 11, 12)
 - [x] Multi-agent reasoning with tool tracking (Example 12)
+- [x] LLM hallucination containment at tool dispatch layer
+- [x] Explicit agent goal strings to prevent tool selection drift
 - [ ] Expand to additional frameworks (AutoGen, Crew AI)
 - [ ] Privacy-preserving content filtering
 - [ ] Larger-scale evaluation (5+ agents)
 - [ ] Implicit causality inference
+- [ ] Multi-tool-per-turn agent architecture
 - [ ] Paper publication
 
 ## Citation
