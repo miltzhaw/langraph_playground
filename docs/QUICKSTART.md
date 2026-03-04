@@ -329,3 +329,25 @@ You'll see:
 | 09 | Test LLM integration | ~5s |
 | 10 | Phase 1-2 vs Phase 3 comparison | ~120s |
 | 11 | Full realistic scenario with viz | ~90s |
+
+
+## Example 12: Research Paper Analysis
+
+Realistic academic workflow with 4 agents and failure handling.
+```bash
+docker exec spectra-app python examples/12_research_paper_analysis.py
+docker cp spectra-app:/app/research_paper_analysis_interactive.html ./
+open research_paper_analysis_interactive.html
+```
+
+**What happens**:
+1. Ingestion agent extracts paper metadata
+2. Analysis agent searches content and finds key results
+3. Citation agent validates citations (~10% fail)
+4. Synthesis agent compiles final report
+
+**Key features**:
+- Shows realistic failure modes
+- Demonstrates failure propagation
+- Generates 20+ events
+- Creates interactive visualization

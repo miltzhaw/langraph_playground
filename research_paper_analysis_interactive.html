@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPECTRA - Causal DAG Visualization</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style type="text/css">
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .sidebar h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .stat-group {
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+            border: 1px solid #999;
+        }
+        
+        #network {
+            height: 75vh;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            position: relative;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+        
+        button {
+            padding: 8px 12px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background-color: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .right-sidebar {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .event-list {
+            font-size: 12px;
+        }
+        
+        .event-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .event-item:hover {
+            background: #f0f0f0;
+            transform: translateX(3px);
+        }
+        
+        .event-type {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 11px;
+        }
+        
+        .event-agent {
+            color: #666;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        .info-detail {
+            color: #666;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar, .right-sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 SPECTRA - Semantic Causal DAG Visualization</h1>
+            <p>Interactive exploration of multi-agent reasoning and coordination</p>
+        </div>
+        
+        <div class="content">
+            <!-- Left Sidebar: Statistics -->
+            <div class="sidebar">
+                <h3>📊 Execution Summary</h3>
+                <div class="stat-group">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Events:</span>
+                        <span class="stat-value">20</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Causal Edges:</span>
+                        <span class="stat-value">16</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Agents:</span>
+                        <span class="stat-value">4</span>
+                    </div>
+                </div>
+                
+                <h3>📈 Event Types</h3>
+                <div class="stat-group">
+                    <div class="stat-item"><span class="stat-label">GOAL_COMPLETED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">GOAL_CREATED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">REASONING_STEP:</span><span class="stat-value">8</span></div><div class="stat-item"><span class="stat-label">TOOL_INVOKED:</span><span class="stat-value">4</span></div>
+                </div>
+                
+                <div class="legend">
+                    <strong style="font-size: 12px;">Event Type Colors</strong>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #E8F4F8;"></div>
+                        <span>Reasoning Step</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #C8E6C9;"></div>
+                        <span>Goal Created</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFE0B2;"></div>
+                        <span>Goal Delegated</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #F8BBD0;"></div>
+                        <span>Tool Invoked</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FFCDD2;"></div>
+                        <span>Goal Failed</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #B2DFDB;"></div>
+                        <span>Goal Completed</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Center: Network Visualization -->
+            <div style="position: relative;">
+                <div id="network"></div>
+                <div class="controls">
+                    <button onclick="zoomIn()">🔍+ Zoom In</button>
+                    <button onclick="zoomOut()">🔍- Zoom Out</button>
+                    <button onclick="fitToScreen()">📐 Fit</button>
+                    <button onclick="resetPhysics()">🔄 Reset</button>
+                    <button onclick="downloadPNG()">💾 PNG</button>
+                </div>
+            </div>
+            
+            <!-- Right Sidebar: Events and Details -->
+            <div class="right-sidebar">
+                <h3>📋 Event Timeline</h3>
+                <div class="event-list" id="eventList"></div>
+                
+                <div class="info-panel">
+                    <div class="info-title">ℹ️ Selected Event Details</div>
+                    <div class="info-detail" id="eventInfo">
+                        Click an event node to see details
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var nodes = new vis.DataSet([{"id": "eb56e2bc-adaa-403c-8348-277f9ea475ec", "label": "GOAL_CREATED\ningestion_agent\n(eb56e2)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Extract metadata from papers/paper.pdf\",\n  \"role\": \"PDF ingestion specialist\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772631495.508233\n}", "font": {"size": 12}}, {"id": "9759ce2a-9110-417d-a6e7-521a4509faac", "label": "REASONING_STEP\ningestion_agent\n(9759ce)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract metadata from papers/paper.pdf\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "62c4ebe0-63e8-4918-aaf6-74591355904e", "label": "TOOL_INVOKED\ningestion_agent\n(62c4eb)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"ingest_paper\",\n  \"params\": {\n    \"file\": \"paper.pdf\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: ingest_paper\\nPARAM_file: paper.pdf\"\n}", "font": {"size": 12}}, {"id": "cd03cca3-b562-449c-82fd-1bec2d7d41b9", "label": "REASONING_STEP\ningestion_agent\n(cd03cc)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"ingest_paper\",\n  \"result_length\": 91\n}", "font": {"size": 12}}, {"id": "a6b8e7df-ab14-4b20-96a0-33a58a71cacd", "label": "GOAL_COMPLETED\ningestion_agent\n(a6b8e7)", "color": "#C8E6C9", "title": "{\n  \"result\": \"Tool execution failed: stat: path should be string, bytes, os.PathLike or integer, not dict\",\n  \"tool_used\": \"ingest_paper\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "ac74d7eb-7ba5-4008-8077-1e7b6896df69", "label": "GOAL_CREATED\nanalysis_agent\n(ac74d7)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Analyze paper content and findings\",\n  \"role\": \"research content analyzer\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772631534.1186914\n}", "font": {"size": 12}}, {"id": "81494bce-fdee-4aa3-841e-6cabde9e9180", "label": "REASONING_STEP\nanalysis_agent\n(81494b)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Analyze paper content and findings\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "900abf16-7f31-4f7e-9a36-97405ecafb2f", "label": "TOOL_INVOKED\nanalysis_agent\n(900abf)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"extract_findings\",\n  \"params\": {\n    \"content\": \"(Assuming I have ingested a PDF paper) The tool to use is 'extract_findings'. This will summarize the key findings, results, and contributions from the paper.\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: extract_findings\\nPARAM_content: (Assuming I have ingested a PDF paper) The tool to use is 'extract_findings'. This will summarize the key f\"\n}", "font": {"size": 12}}, {"id": "395ab8d2-baff-4e68-b1ec-54d06039318a", "label": "REASONING_STEP\nanalysis_agent\n(395ab8)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"extract_findings\",\n  \"result_length\": 509\n}", "font": {"size": 12}}, {"id": "8400b4d6-a584-4b2a-8e6e-ad5d42b47e41", "label": "GOAL_COMPLETED\nanalysis_agent\n(8400b4)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{'main_contribution': 'Introduction of Transformer architecture based solely on attention mechanisms\",\n  \"tool_used\": \"extract_findings\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "d8d1ab15-c3ac-4303-bd50-6d0879b43fd1", "label": "GOAL_CREATED\ncitation_agent\n(d8d1ab)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Validate citations and map relationships\",\n  \"role\": \"citation validator\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772631581.9662082\n}", "font": {"size": 12}}, {"id": "b4689343-f388-4394-b433-8cbb9c728236", "label": "REASONING_STEP\ncitation_agent\n(b46893)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Validate citations and map relationships\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "1495adeb-6841-42d3-81ee-56146bea5d27", "label": "TOOL_INVOKED\ncitation_agent\n(1495ad)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"validate_citations\",\n  \"params\": {},\n  \"reasoning_snippet\": \"TOOL_NAME: validate_citations\\n\\n(Assuming that the paper has already been ingested)\"\n}", "font": {"size": 12}}, {"id": "fa176302-83cd-43d8-9b82-8e0c59c8c5c5", "label": "REASONING_STEP\ncitation_agent\n(fa1763)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"validate_citations\",\n  \"result_length\": 344\n}", "font": {"size": 12}}, {"id": "9391e759-0c22-4bf3-b394-8a1bc5777a7e", "label": "GOAL_COMPLETED\ncitation_agent\n(9391e7)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{'total_citations': 142, 'validated': 139, 'invalid_dois': 2, 'unreachable_urls': 1, 'validation_rat\",\n  \"tool_used\": \"validate_citations\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "d1cf9da7-83d8-4846-9e21-4c4604ec5cd5", "label": "GOAL_CREATED\nsynthesis_agent\n(d1cf9d)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Synthesize comprehensive analysis\",\n  \"role\": \"synthesis specialist\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772631634.376592\n}", "font": {"size": 12}}, {"id": "0bca3b47-de09-48e3-af61-b161a7ebfd22", "label": "REASONING_STEP\nsynthesis_agent\n(0bca3b)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Synthesize comprehensive analysis\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "3d97f921-fd50-4f7c-a865-bccf7f6973cd", "label": "TOOL_INVOKED\nsynthesis_agent\n(3d97f9)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"extract_findings\",\n  \"params\": {\n    \"content\": \"(After running the appropriate tools to gather necessary data) The paper discusses [Title of the Paper] by [Authors]. It was published with a DOI of [DOI], and contains [Page Count] pages. The main focus of the paper is on [Main Focus/Topic].\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: extract_findings\\nPARAM_content: (After running the appropriate tools to gather necessary data) The paper discusses [Title of the Paper] by \"\n}", "font": {"size": 12}}, {"id": "a3cfd26c-9d93-43d3-9c48-566d7080c530", "label": "REASONING_STEP\nsynthesis_agent\n(a3cfd2)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"extract_findings\",\n  \"result_length\": 509\n}", "font": {"size": 12}}, {"id": "dbb32835-6d56-44dc-a451-a626e6ec109f", "label": "GOAL_COMPLETED\nsynthesis_agent\n(dbb328)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{'main_contribution': 'Introduction of Transformer architecture based solely on attention mechanisms\",\n  \"tool_used\": \"extract_findings\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}]);
+        var edges = new vis.DataSet([{"from": "d1cf9da7-83d8-4846-9e21-4c4604ec5cd5", "to": "0bca3b47-de09-48e3-af61-b161a7ebfd22", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "1495adeb-6841-42d3-81ee-56146bea5d27", "to": "fa176302-83cd-43d8-9b82-8e0c59c8c5c5", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "eb56e2bc-adaa-403c-8348-277f9ea475ec", "to": "9759ce2a-9110-417d-a6e7-521a4509faac", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "d8d1ab15-c3ac-4303-bd50-6d0879b43fd1", "to": "b4689343-f388-4394-b433-8cbb9c728236", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "cd03cca3-b562-449c-82fd-1bec2d7d41b9", "to": "a6b8e7df-ab14-4b20-96a0-33a58a71cacd", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "0bca3b47-de09-48e3-af61-b161a7ebfd22", "to": "3d97f921-fd50-4f7c-a865-bccf7f6973cd", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "395ab8d2-baff-4e68-b1ec-54d06039318a", "to": "8400b4d6-a584-4b2a-8e6e-ad5d42b47e41", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "b4689343-f388-4394-b433-8cbb9c728236", "to": "1495adeb-6841-42d3-81ee-56146bea5d27", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "900abf16-7f31-4f7e-9a36-97405ecafb2f", "to": "395ab8d2-baff-4e68-b1ec-54d06039318a", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "ac74d7eb-7ba5-4008-8077-1e7b6896df69", "to": "81494bce-fdee-4aa3-841e-6cabde9e9180", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "81494bce-fdee-4aa3-841e-6cabde9e9180", "to": "900abf16-7f31-4f7e-9a36-97405ecafb2f", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "fa176302-83cd-43d8-9b82-8e0c59c8c5c5", "to": "9391e759-0c22-4bf3-b394-8a1bc5777a7e", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "9759ce2a-9110-417d-a6e7-521a4509faac", "to": "62c4ebe0-63e8-4918-aaf6-74591355904e", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "3d97f921-fd50-4f7c-a865-bccf7f6973cd", "to": "a3cfd26c-9d93-43d3-9c48-566d7080c530", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "a3cfd26c-9d93-43d3-9c48-566d7080c530", "to": "dbb32835-6d56-44dc-a451-a626e6ec109f", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "62c4ebe0-63e8-4918-aaf6-74591355904e", "to": "cd03cca3-b562-449c-82fd-1bec2d7d41b9", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}]);
+
+        var container = document.getElementById('network');
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        var options = {
+            physics: {
+                enabled: true,
+                stabilization: {
+                    iterations: 200,
+                    fit: true
+                },
+                barnesHut: {
+                    gravitationalConstant: -26000,
+                    centralGravity: 0.3,
+                    springLength: 200
+                }
+            },
+            nodes: {
+                font: {
+                    size: 13,
+                    color: '#333',
+                    face: 'Segoe UI'
+                },
+                borderWidth: 2,
+                borderWidthSelected: 4,
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.2)',
+                    size: 10,
+                    x: 5,
+                    y: 5
+                }
+            },
+            edges: {
+                smooth: {
+                    type: 'continuous',
+                    roundness: 0.5
+                },
+                arrows: {
+                    to: {
+                        enabled: true,
+                        scaleFactor: 1.3,
+                        type: 'arrow'
+                    }
+                },
+                color: {
+                    color: '#aaa',
+                    highlight: '#667eea',
+                    opacity: 0.6
+                },
+                width: 2,
+                font: {
+                    size: 11,
+                    color: '#666',
+                    background: {
+                        enabled: true,
+                        color: 'white'
+                    }
+                },
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.1)',
+                    size: 5,
+                    x: 3,
+                    y: 3
+                }
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+
+        // Event list
+        var events = [{"id": "eb56e2bc", "type": "GOAL_CREATED", "agent": "ingestion_agent"}, {"id": "9759ce2a", "type": "REASONING_STEP", "agent": "ingestion_agent"}, {"id": "62c4ebe0", "type": "TOOL_INVOKED", "agent": "ingestion_agent"}, {"id": "cd03cca3", "type": "REASONING_STEP", "agent": "ingestion_agent"}, {"id": "a6b8e7df", "type": "GOAL_COMPLETED", "agent": "ingestion_agent"}, {"id": "ac74d7eb", "type": "GOAL_CREATED", "agent": "analysis_agent"}, {"id": "81494bce", "type": "REASONING_STEP", "agent": "analysis_agent"}, {"id": "900abf16", "type": "TOOL_INVOKED", "agent": "analysis_agent"}, {"id": "395ab8d2", "type": "REASONING_STEP", "agent": "analysis_agent"}, {"id": "8400b4d6", "type": "GOAL_COMPLETED", "agent": "analysis_agent"}, {"id": "d8d1ab15", "type": "GOAL_CREATED", "agent": "citation_agent"}, {"id": "b4689343", "type": "REASONING_STEP", "agent": "citation_agent"}, {"id": "1495adeb", "type": "TOOL_INVOKED", "agent": "citation_agent"}, {"id": "fa176302", "type": "REASONING_STEP", "agent": "citation_agent"}, {"id": "9391e759", "type": "GOAL_COMPLETED", "agent": "citation_agent"}, {"id": "d1cf9da7", "type": "GOAL_CREATED", "agent": "synthesis_agent"}, {"id": "0bca3b47", "type": "REASONING_STEP", "agent": "synthesis_agent"}, {"id": "3d97f921", "type": "TOOL_INVOKED", "agent": "synthesis_agent"}, {"id": "a3cfd26c", "type": "REASONING_STEP", "agent": "synthesis_agent"}, {"id": "dbb32835", "type": "GOAL_COMPLETED", "agent": "synthesis_agent"}];
+        var eventListHtml = events.map((e, i) => 
+            `<div class="event-item" onclick="selectEvent('${e.id}')">
+                <div class="event-type">${i+1}. ${e.type}</div>
+                <div class="event-agent">${e.agent}</div>
+            </div>`
+        ).join('');
+        document.getElementById('eventList').innerHTML = eventListHtml;
+
+        function selectEvent(eventId) {
+            var allEvents = [{"event_id": "eb56e2bc-adaa-403c-8348-277f9ea475ec", "event_type": "GOAL_CREATED", "agent_id": "ingestion_agent", "timestamp": 1772631495.508242, "correlation_id": "research_paper_001", "payload": {"goal": "Extract metadata from papers/paper.pdf", "role": "PDF ingestion specialist", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772631495.508233}}, {"event_id": "9759ce2a-9110-417d-a6e7-521a4509faac", "event_type": "REASONING_STEP", "agent_id": "ingestion_agent", "timestamp": 1772631495.508248, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Extract metadata from papers/paper.pdf", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "62c4ebe0-63e8-4918-aaf6-74591355904e", "event_type": "TOOL_INVOKED", "agent_id": "ingestion_agent", "timestamp": 1772631534.015407, "correlation_id": "research_paper_001", "payload": {"tool": "ingest_paper", "params": {"file": "paper.pdf"}, "reasoning_snippet": "TOOL_NAME: ingest_paper\nPARAM_file: paper.pdf"}}, {"event_id": "cd03cca3-b562-449c-82fd-1bec2d7d41b9", "event_type": "REASONING_STEP", "agent_id": "ingestion_agent", "timestamp": 1772631534.015451, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "ingest_paper", "result_length": 91}}, {"event_id": "a6b8e7df-ab14-4b20-96a0-33a58a71cacd", "event_type": "GOAL_COMPLETED", "agent_id": "ingestion_agent", "timestamp": 1772631534.015461, "correlation_id": "research_paper_001", "payload": {"result": "Tool execution failed: stat: path should be string, bytes, os.PathLike or integer, not dict", "tool_used": "ingest_paper", "status": "success"}}, {"event_id": "ac74d7eb-7ba5-4008-8077-1e7b6896df69", "event_type": "GOAL_CREATED", "agent_id": "analysis_agent", "timestamp": 1772631534.118703, "correlation_id": "research_paper_001", "payload": {"goal": "Analyze paper content and findings", "role": "research content analyzer", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772631534.1186914}}, {"event_id": "81494bce-fdee-4aa3-841e-6cabde9e9180", "event_type": "REASONING_STEP", "agent_id": "analysis_agent", "timestamp": 1772631534.118712, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Analyze paper content and findings", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "900abf16-7f31-4f7e-9a36-97405ecafb2f", "event_type": "TOOL_INVOKED", "agent_id": "analysis_agent", "timestamp": 1772631581.965319, "correlation_id": "research_paper_001", "payload": {"tool": "extract_findings", "params": {"content": "(Assuming I have ingested a PDF paper) The tool to use is 'extract_findings'. This will summarize the key findings, results, and contributions from the paper."}, "reasoning_snippet": "TOOL_NAME: extract_findings\nPARAM_content: (Assuming I have ingested a PDF paper) The tool to use is 'extract_findings'. This will summarize the key f"}}, {"event_id": "395ab8d2-baff-4e68-b1ec-54d06039318a", "event_type": "REASONING_STEP", "agent_id": "analysis_agent", "timestamp": 1772631581.96537, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "extract_findings", "result_length": 509}}, {"event_id": "8400b4d6-a584-4b2a-8e6e-ad5d42b47e41", "event_type": "GOAL_COMPLETED", "agent_id": "analysis_agent", "timestamp": 1772631581.965387, "correlation_id": "research_paper_001", "payload": {"result": "{'main_contribution': 'Introduction of Transformer architecture based solely on attention mechanisms", "tool_used": "extract_findings", "status": "success"}}, {"event_id": "d8d1ab15-c3ac-4303-bd50-6d0879b43fd1", "event_type": "GOAL_CREATED", "agent_id": "citation_agent", "timestamp": 1772631581.966223, "correlation_id": "research_paper_001", "payload": {"goal": "Validate citations and map relationships", "role": "citation validator", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772631581.9662082}}, {"event_id": "b4689343-f388-4394-b433-8cbb9c728236", "event_type": "REASONING_STEP", "agent_id": "citation_agent", "timestamp": 1772631581.966236, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Validate citations and map relationships", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "1495adeb-6841-42d3-81ee-56146bea5d27", "event_type": "TOOL_INVOKED", "agent_id": "citation_agent", "timestamp": 1772631634.375588, "correlation_id": "research_paper_001", "payload": {"tool": "validate_citations", "params": {}, "reasoning_snippet": "TOOL_NAME: validate_citations\n\n(Assuming that the paper has already been ingested)"}}, {"event_id": "fa176302-83cd-43d8-9b82-8e0c59c8c5c5", "event_type": "REASONING_STEP", "agent_id": "citation_agent", "timestamp": 1772631634.375669, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "validate_citations", "result_length": 344}}, {"event_id": "9391e759-0c22-4bf3-b394-8a1bc5777a7e", "event_type": "GOAL_COMPLETED", "agent_id": "citation_agent", "timestamp": 1772631634.375696, "correlation_id": "research_paper_001", "payload": {"result": "{'total_citations': 142, 'validated': 139, 'invalid_dois': 2, 'unreachable_urls': 1, 'validation_rat", "tool_used": "validate_citations", "status": "success"}}, {"event_id": "d1cf9da7-83d8-4846-9e21-4c4604ec5cd5", "event_type": "GOAL_CREATED", "agent_id": "synthesis_agent", "timestamp": 1772631634.37661, "correlation_id": "research_paper_001", "payload": {"goal": "Synthesize comprehensive analysis", "role": "synthesis specialist", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772631634.376592}}, {"event_id": "0bca3b47-de09-48e3-af61-b161a7ebfd22", "event_type": "REASONING_STEP", "agent_id": "synthesis_agent", "timestamp": 1772631634.376626, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Synthesize comprehensive analysis", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "3d97f921-fd50-4f7c-a865-bccf7f6973cd", "event_type": "TOOL_INVOKED", "agent_id": "synthesis_agent", "timestamp": 1772631725.347238, "correlation_id": "research_paper_001", "payload": {"tool": "extract_findings", "params": {"content": "(After running the appropriate tools to gather necessary data) The paper discusses [Title of the Paper] by [Authors]. It was published with a DOI of [DOI], and contains [Page Count] pages. The main focus of the paper is on [Main Focus/Topic]."}, "reasoning_snippet": "TOOL_NAME: extract_findings\nPARAM_content: (After running the appropriate tools to gather necessary data) The paper discusses [Title of the Paper] by "}}, {"event_id": "a3cfd26c-9d93-43d3-9c48-566d7080c530", "event_type": "REASONING_STEP", "agent_id": "synthesis_agent", "timestamp": 1772631725.347266, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "extract_findings", "result_length": 509}}, {"event_id": "dbb32835-6d56-44dc-a451-a626e6ec109f", "event_type": "GOAL_COMPLETED", "agent_id": "synthesis_agent", "timestamp": 1772631725.347272, "correlation_id": "research_paper_001", "payload": {"result": "{'main_contribution': 'Introduction of Transformer architecture based solely on attention mechanisms", "tool_used": "extract_findings", "status": "success"}}];
+            var event = allEvents.find(e => e.event_id.startsWith(eventId));
+            if (event) {
+                var html = `
+                    <strong>${event.event_type}</strong><br>
+                    Agent: <strong>${event.agent_id}</strong><br>
+                    Time: ${event.timestamp.toFixed(3)}<br>
+                    <hr>
+                    <strong>Payload:</strong><br>
+                    <pre>${JSON.stringify(event.payload, null, 2).substring(0, 500)}</pre>
+                `;
+                document.getElementById('eventInfo').innerHTML = html;
+                nodes.update({id: event.event_id, borderWidth: 4});
+            }
+        }
+
+        function zoomIn() {
+            var scale = network.getScale();
+            network.setOptions({ physics: false });
+            network.moveTo({ scale: scale * 1.2 });
+        }
+
+        function zoomOut() {
+            var scale = network.getScale();
+            network.setOptions({ physics: false });
+            network.moveTo({ scale: scale / 1.2 });
+        }
+
+        function fitToScreen() {
+            network.fit({ animation: true });
+        }
+
+        function resetPhysics() {
+            network.setOptions({ physics: { enabled: true } });
+            network.stabilize();
+        }
+
+        function downloadPNG() {
+            network.once("afterDrawing", function(ctx) {
+                var scaleFactor = 2; // higher resolution
+                var canvas = ctx.canvas;
+
+                var exportCanvas = document.createElement("canvas");
+                exportCanvas.width = canvas.width * scaleFactor;
+                exportCanvas.height = canvas.height * scaleFactor;
+
+                var exportCtx = exportCanvas.getContext("2d");
+                exportCtx.scale(scaleFactor, scaleFactor);
+                exportCtx.drawImage(canvas, 0, 0);
+
+                var link = document.createElement("a");
+                link.href = exportCanvas.toDataURL("image/png");
+                link.download = "causal_dag_highres.png";
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            network.redraw();
+        }
+
+        // Click on node to show details
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                var nodeId = params.nodes[0];
+                selectEvent(nodeId.substring(0, 8));
+            }
+        });
+    </script>
+</body>
+</html>
