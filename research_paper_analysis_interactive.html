@@ -2,472 +2,238 @@
 <html>
 <head>
     <title>SPECTRA - Causal DAG Visualization</title>
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <style type="text/css">
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        /* Fixed body to prevent double scrollbars */
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);height:100vh;padding:20px;overflow:hidden}
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+        /* Container fits the viewport */
+        .container{max-width:1600px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;height:100%;display:flex;flex-direction:column}
+        
+        .header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 30px;text-align:center;flex-shrink:0}
+        .header h1{font-size:24px;margin-bottom:6px}
+        .header p{font-size:13px;opacity:.85}
+
+        /* Content area takes remaining height and defines fixed columns */
+        .content{
+            display:grid;
+            grid-template-columns:280px 1fr 300px;
+            gap:16px;
+            padding:16px;
+            flex-grow:1;
+            overflow:hidden; /* Prevents the central area from expanding past the screen */
+            height: calc(100% - 80px); /* Adjusts for header height */
         }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+
+        /* Sidebars have independent scrolling */
+        .sidebar,.right-sidebar{
+            background:#f8f9fa;
+            border-radius:8px;
+            padding:16px;
+            overflow-y:auto;
+            border:1px solid #e0e0e0;
+            font-size:12px;
+            height: 100%; 
         }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+
+        .sidebar h3,.right-sidebar h3{color:#444;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #667eea;padding-bottom:8px;margin-bottom:12px}
+        .stat-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}
+        .stat-label{color:#666}.stat-value{color:#667eea;font-weight:bold}
+        .agent-badge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:600;margin:2px 0}
+        .ag-ingestion{background:#e3f2fd;color:#1565c0}.ag-analysis{background:#f3e5f5;color:#6a1b9a}
+        .ag-citation{background:#e8f5e9;color:#2e7d32}.ag-synthesis{background:#fff3e0;color:#e65100}
+        .legend-item{display:flex;align-items:center;margin-bottom:8px;font-size:11px}
+        .lc{width:16px;height:16px;border-radius:3px;margin-right:8px;border:1px solid #bbb;flex-shrink:0}
+        .ll{width:26px;height:3px;margin-right:8px;flex-shrink:0;border-radius:2px}
+
+        /* Diagram wrapper and network - Fixed Height */
+        .net-wrap{position:relative;height:100%;min-height:0}
+        #network{
+            height:100%;
+            width:100%;
+            border:1px solid #ddd;
+            border-radius:8px;
+            background:#fafafa;
         }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            display: grid;
-            grid-template-columns: 300px 1fr 300px;
-            gap: 20px;
-            padding: 20px;
-            height: calc(100vh - 200px);
-        }
-        
-        .sidebar {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .sidebar h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 14px;
-            text-transform: uppercase;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .stat-group {
-            margin-bottom: 20px;
-        }
-        
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 13px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-weight: 500;
-        }
-        
-        .stat-value {
-            color: #667eea;
-            font-weight: bold;
-        }
-        
-        .legend {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-            border: 1px solid #ddd;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 12px;
-        }
-        
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-            margin-right: 8px;
-            border: 1px solid #999;
-        }
-        
-        #network {
-            height: 75vh;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background: white;
-            position: relative;
-        }
-        
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: white;
-            padding: 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        button {
-            padding: 8px 12px;
-            background-color: #667eea;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        
-        button:hover {
-            background-color: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .right-sidebar {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .event-list {
-            font-size: 12px;
-        }
-        
-        .event-item {
-            background: white;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            border-left: 3px solid #667eea;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .event-item:hover {
-            background: #f0f0f0;
-            transform: translateX(3px);
-        }
-        
-        .event-type {
-            font-weight: bold;
-            color: #667eea;
-            font-size: 11px;
-        }
-        
-        .event-agent {
-            color: #666;
-            font-size: 11px;
-            margin-top: 3px;
-        }
-        
-        .info-panel {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-size: 12px;
-        }
-        
-        .info-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 8px;
-        }
-        
-        .info-detail {
-            color: #666;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-        
-        @media (max-width: 1200px) {
-            .content {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-            
-            .sidebar, .right-sidebar {
-                display: none;
-            }
+
+        .controls{position:absolute;bottom:12px;left:12px;background:white;padding:10px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.12);display:flex;gap:6px;z-index:100}
+        button{padding:6px 10px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;transition:all .2s}
+        button:hover{background:#764ba2;transform:translateY(-1px)}
+        .callout{background:#fffde7;border-left:3px solid #f9a825;padding:8px 10px;border-radius:0 4px 4px 0;margin-bottom:10px;font-size:11px;color:#555;line-height:1.5}
+        .callout strong{color:#e65100}
+        .event-item{background:white;padding:8px 10px;margin-bottom:6px;border-radius:4px;border-left:3px solid #667eea;cursor:pointer;transition:all .15s}
+        .event-item:hover{background:#f0f0f0;transform:translateX(2px)}
+        .event-item.selected{border-left-color:#e65100;background:#fff8f5}
+        .event-type{font-weight:bold;color:#667eea;font-size:10px}
+        .event-ts{color:#bbb;font-size:10px;float:right}
+        .info-panel{background:white;padding:12px;border-radius:6px;border:1px solid #ddd;margin-top:12px;font-size:11px;max-height:280px;overflow-y:auto}
+        .info-panel pre{background:#f5f5f5;padding:8px;border-radius:4px;white-space:pre-wrap;word-break:break-all;font-size:10px;margin-top:6px}
+        .gap-warning{background:#fce4ec;border:1px solid #f48fb1;border-radius:4px;padding:6px 8px;font-size:10px;color:#880e4f;margin:6px 0}
+        @media(max-width:1100px){
+            body{overflow:auto;height:auto}
+            .container{height:auto}
+            .content{grid-template-columns:1fr;height:auto}
+            .sidebar,.right-sidebar{display:none}
+            .net-wrap{height:600px}
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 SPECTRA - Semantic Causal DAG Visualization</h1>
-            <p>Interactive exploration of multi-agent reasoning and coordination</p>
-        </div>
-        
-        <div class="content">
-            <!-- Left Sidebar: Statistics -->
-            <div class="sidebar">
-                <h3>📊 Execution Summary</h3>
-                <div class="stat-group">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Events:</span>
-                        <span class="stat-value">20</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Causal Edges:</span>
-                        <span class="stat-value">15</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Agents:</span>
-                        <span class="stat-value">4</span>
-                    </div>
-                </div>
-                
-                <h3>📈 Event Types</h3>
-                <div class="stat-group">
-                    <div class="stat-item"><span class="stat-label">GOAL_COMPLETED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">GOAL_CREATED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">REASONING_STEP:</span><span class="stat-value">8</span></div><div class="stat-item"><span class="stat-label">TOOL_INVOKED:</span><span class="stat-value">4</span></div>
-                </div>
-                
-                <div class="legend">
-                    <strong style="font-size: 12px;">Event Type Colors</strong>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #E8F4F8;"></div>
-                        <span>Reasoning Step</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #C8E6C9;"></div>
-                        <span>Goal Created</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FFE0B2;"></div>
-                        <span>Goal Delegated</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #F8BBD0;"></div>
-                        <span>Tool Invoked</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FFCDD2;"></div>
-                        <span>Goal Failed</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #B2DFDB;"></div>
-                        <span>Goal Completed</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Center: Network Visualization -->
-            <div style="position: relative;">
-                <div id="network"></div>
-                <div class="controls">
-                    <button onclick="zoomIn()">🔍+ Zoom In</button>
-                    <button onclick="zoomOut()">🔍- Zoom Out</button>
-                    <button onclick="fitToScreen()">📐 Fit</button>
-                    <button onclick="resetPhysics()">🔄 Reset</button>
-                    <button onclick="downloadPNG()">💾 PNG</button>
-                </div>
-            </div>
-            
-            <!-- Right Sidebar: Events and Details -->
-            <div class="right-sidebar">
-                <h3>📋 Event Timeline</h3>
-                <div class="event-list" id="eventList"></div>
-                
-                <div class="info-panel">
-                    <div class="info-title">ℹ️ Selected Event Details</div>
-                    <div class="info-detail" id="eventInfo">
-                        Click an event node to see details
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🔍 SPECTRA — Semantic Causal DAG</h1>
+        <p>Multi-Agent Reasoning Pipeline &nbsp;·&nbsp; 4 agents &nbsp;·&nbsp; 20 events &nbsp;·&nbsp; 15 causal edges &nbsp;·&nbsp; 0 failures</p>
     </div>
+    <div class="content">
 
-    <script type="text/javascript">
-        var nodes = new vis.DataSet([{"id": "54ab40b9-099d-4660-9b03-d902b8eec90f", "label": "GOAL_CREATED\ningestion_agent\n(54ab40)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Extract metadata from papers/paper.pdf\",\n  \"role\": \"PDF ingestion specialist\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772642417.0003917\n}", "font": {"size": 12}}, {"id": "7b6b74ae-bfdb-4f9c-b8e3-95c526e762fa", "label": "REASONING_STEP\ningestion_agent\n(7b6b74)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract metadata from papers/paper.pdf\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "b091aa55-35c3-4a74-9fd1-9986861abc07", "label": "TOOL_INVOKED\ningestion_agent\n(b091aa)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"ingest_paper\",\n  \"params\": {\n    \"file_path\": \"papers/paper.pdf\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: ingest_paper\\nPARAM_file_path: papers/paper.pdf\"\n}", "font": {"size": 12}}, {"id": "e6fb3f93-c7ef-4f08-b728-d59558f86aac", "label": "REASONING_STEP\ningestion_agent\n(e6fb3f)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"ingest_paper\",\n  \"result_length\": 83561\n}", "font": {"size": 12}}, {"id": "bd37215f-ca00-4152-bbb9-407ca4abac44", "label": "GOAL_COMPLETED\ningestion_agent\n(bd3721)", "color": "#C8E6C9", "title": "{\n  \"result\": \"PaperMetadata(title='future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for S\",\n  \"tool_used\": \"ingest_paper\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "8b1511e2-d709-478a-b137-f32306f0f78a", "label": "GOAL_CREATED\nanalysis_agent\n(8b1511)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.\",\n  \"role\": \"research content analyzer\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772642479.6326125\n}", "font": {"size": 12}}, {"id": "ef93a76e-a5a4-4da8-b226-2117e2b9633b", "label": "REASONING_STEP\nanalysis_agent\n(ef93a7)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "0b118a73-cdd5-42d7-86b5-7cc6a951036b", "label": "TOOL_INVOKED\nanalysis_agent\n(0b118a)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"extract_findings\",\n  \"params\": {\n    \"paper\": \"<injected>\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: extract_findings\\nPARAM_paper: <injected>\"\n}", "font": {"size": 12}}, {"id": "ddd144d7-af34-4ef7-b458-e7fb1024b282", "label": "REASONING_STEP\nanalysis_agent\n(ddd144)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"extract_findings\",\n  \"result_length\": 3935\n}", "font": {"size": 12}}, {"id": "c3d2e83c-2612-4963-bd6b-677b8eb98671", "label": "GOAL_COMPLETED\nanalysis_agent\n(c3d2e8)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{'main_contribution': 'When a natural or human disaster occurs time is critical and often of vital i\",\n  \"tool_used\": \"extract_findings\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "940febe4-fd80-47b7-ae9d-14137e52acc4", "label": "GOAL_CREATED\ncitation_agent\n(940feb)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Validate citations and map relationships\",\n  \"role\": \"citation validator\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772642545.273326\n}", "font": {"size": 12}}, {"id": "726efe40-9a20-4125-aae2-88480f9d6511", "label": "REASONING_STEP\ncitation_agent\n(726efe)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Validate citations and map relationships\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "080b3105-5fe1-4319-b23d-7ce0669feec8", "label": "TOOL_INVOKED\ncitation_agent\n(080b31)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"validate_citations\",\n  \"params\": {\n    \"paper\": \"paper_metadata\",\n    \"sample_size\": \"100\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: validate_citations\\nPARAM_paper: paper_metadata\\nPARAM_sample_size: 100\\n\\nTOOL_NAME: map_relationships\\nPARAM_paper: paper_metadata\"\n}", "font": {"size": 12}}, {"id": "6238a8c9-5829-42db-8e59-247e6239277a", "label": "REASONING_STEP\ncitation_agent\n(6238a8)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"validate_citations\",\n  \"result_length\": 93\n}", "font": {"size": 12}}, {"id": "9734f355-8358-4ac2-83c1-31f2c7705c78", "label": "GOAL_COMPLETED\ncitation_agent\n(9734f3)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{'total_citations': 42, 'validated': 40, 'validation_rate': 0.9523809523809523, 'issues': []}\",\n  \"tool_used\": \"validate_citations\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "e9f3d731-8dd7-40a6-95b5-f9d15278c60b", "label": "GOAL_CREATED\nsynthesis_agent\n(e9f3d7)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.\",\n  \"role\": \"synthesis specialist\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1772642648.4309502\n}", "font": {"size": 12}}, {"id": "25ed8f95-6477-4e30-8c86-876065aeb880", "label": "REASONING_STEP\nsynthesis_agent\n(25ed8f)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}", "font": {"size": 12}}, {"id": "b484b959-17f6-488f-b4af-1dc20ef4040a", "label": "TOOL_INVOKED\nsynthesis_agent\n(b484b9)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"synthesize\",\n  \"params\": {\n    \"findings\": \"<provide the findings here>\",\n    \"citations\": \"<provide the citations here>\",\n    \"relationships\": \"<provide the relationships here>\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: synthesize\\nPARAM_findings: <provide the findings here>\\nPARAM_citations: <provide the citations here>\\nPARAM_relationships: <provide the relationships here>\"\n}", "font": {"size": 12}}, {"id": "72325ec7-86be-4bf1-b1a4-cf7cb0a9c63c", "label": "REASONING_STEP\nsynthesis_agent\n(72325e)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"synthesize\",\n  \"result_length\": 588\n}", "font": {"size": 12}}, {"id": "d8d61f3c-5e9c-4b91-bd18-453f4445ebc1", "label": "GOAL_COMPLETED\nsynthesis_agent\n(d8d61f)", "color": "#C8E6C9", "title": "{\n  \"result\": \"Contribution: When a natural or human disaster occurs time is critical and often of vital importance\",\n  \"tool_used\": \"synthesize\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}]);
-        var edges = new vis.DataSet([{"from": "ddd144d7-af34-4ef7-b458-e7fb1024b282", "to": "c3d2e83c-2612-4963-bd6b-677b8eb98671", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "080b3105-5fe1-4319-b23d-7ce0669feec8", "to": "6238a8c9-5829-42db-8e59-247e6239277a", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "6238a8c9-5829-42db-8e59-247e6239277a", "to": "9734f355-8358-4ac2-83c1-31f2c7705c78", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "726efe40-9a20-4125-aae2-88480f9d6511", "to": "080b3105-5fe1-4319-b23d-7ce0669feec8", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "8b1511e2-d709-478a-b137-f32306f0f78a", "to": "ef93a76e-a5a4-4da8-b226-2117e2b9633b", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "940febe4-fd80-47b7-ae9d-14137e52acc4", "to": "726efe40-9a20-4125-aae2-88480f9d6511", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "54ab40b9-099d-4660-9b03-d902b8eec90f", "to": "7b6b74ae-bfdb-4f9c-b8e3-95c526e762fa", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "b484b959-17f6-488f-b4af-1dc20ef4040a", "to": "72325ec7-86be-4bf1-b1a4-cf7cb0a9c63c", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "25ed8f95-6477-4e30-8c86-876065aeb880", "to": "b484b959-17f6-488f-b4af-1dc20ef4040a", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "0b118a73-cdd5-42d7-86b5-7cc6a951036b", "to": "ddd144d7-af34-4ef7-b458-e7fb1024b282", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "e9f3d731-8dd7-40a6-95b5-f9d15278c60b", "to": "25ed8f95-6477-4e30-8c86-876065aeb880", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "7b6b74ae-bfdb-4f9c-b8e3-95c526e762fa", "to": "b091aa55-35c3-4a74-9fd1-9986861abc07", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "72325ec7-86be-4bf1-b1a4-cf7cb0a9c63c", "to": "d8d61f3c-5e9c-4b91-bd18-453f4445ebc1", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "e6fb3f93-c7ef-4f08-b728-d59558f86aac", "to": "bd37215f-ca00-4152-bbb9-407ca4abac44", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "ef93a76e-a5a4-4da8-b226-2117e2b9633b", "to": "0b118a73-cdd5-42d7-86b5-7cc6a951036b", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}]);
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <h3>📊 Execution Summary</h3>
+            <div class="stat-item"><span class="stat-label">Total Events</span><span class="stat-value">20</span></div>
+            <div class="stat-item"><span class="stat-label">Causal Edges</span><span class="stat-value">15</span></div>
+            <div class="stat-item"><span class="stat-label">Agents</span><span class="stat-value">4</span></div>
+            <div class="stat-item"><span class="stat-label">Failures</span><span class="stat-value" style="color:#43a047">0</span></div>
+            <div class="stat-item"><span class="stat-label">Tool Invocations</span><span class="stat-value">4</span></div>
 
-        var container = document.getElementById('network');
-        var data = {
-            nodes: nodes,
-            edges: edges
-        };
+            <h3 style="margin-top:14px">📈 Event Types</h3>
+            <div class="stat-item"><span class="stat-label">GOAL_COMPLETED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">GOAL_CREATED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">REASONING_STEP:</span><span class="stat-value">8</span></div><div class="stat-item"><span class="stat-label">TOOL_INVOKED:</span><span class="stat-value">4</span></div>
 
-        var options = {
-            physics: {
-                enabled: true,
-                stabilization: {
-                    iterations: 200,
-                    fit: true
-                },
-                barnesHut: {
-                    gravitationalConstant: -26000,
-                    centralGravity: 0.3,
-                    springLength: 200
-                }
-            },
-            nodes: {
-                font: {
-                    size: 13,
-                    color: '#333',
-                    face: 'Segoe UI'
-                },
-                borderWidth: 2,
-                borderWidthSelected: 4,
-                shadow: {
-                    enabled: true,
-                    color: 'rgba(0,0,0,0.2)',
-                    size: 10,
-                    x: 5,
-                    y: 5
-                }
-            },
-            edges: {
-                smooth: {
-                    type: 'continuous',
-                    roundness: 0.5
-                },
-                arrows: {
-                    to: {
-                        enabled: true,
-                        scaleFactor: 1.3,
-                        type: 'arrow'
-                    }
-                },
-                color: {
-                    color: '#aaa',
-                    highlight: '#667eea',
-                    opacity: 0.6
-                },
-                width: 2,
-                font: {
-                    size: 11,
-                    color: '#666',
-                    background: {
-                        enabled: true,
-                        color: 'white'
-                    }
-                },
-                shadow: {
-                    enabled: true,
-                    color: 'rgba(0,0,0,0.1)',
-                    size: 5,
-                    x: 3,
-                    y: 3
-                }
-            }
-        };
+            <h3 style="margin-top:14px">🎨 Legend</h3>
+            <div class="legend-item"><div class="lc" style="background:#C8E6C9"></div>GOAL_CREATED / COMPLETED</div>
+            <div class="legend-item"><div class="lc" style="background:#E8F4F8"></div>REASONING_STEP</div>
+            <div class="legend-item"><div class="lc" style="background:#F8BBD0"></div>TOOL_INVOKED</div>
+            <div class="legend-item"><div class="lc" style="background:#FFCDD2"></div>GOAL_FAILED</div>
+            <div class="legend-item"><div class="ll" style="background:#4ECDC4"></div>intra_agent_sequence</div>
+            <div class="legend-item"><div class="ll" style="background:#95E1D3"></div>inferred_by_proximity</div>
+            <div class="legend-item"><div style="width:26px;border-top:2px dashed #bbb;margin-right:8px"></div>pipeline handoff (implicit)</div>
+            <div class="legend-item"><div class="lc" style="background:#F8BBD0;border:3px dashed #e53935"></div>reasoning-execution gap</div>
 
-        var network = new vis.Network(container, data, options);
+            <h3 style="margin-top:14px">⏱️ LLM Latency</h3>
+            <div class="stat-item"><span class="stat-label">analysis_agent</span><span class="stat-value">~62s</span></div><div class="stat-item"><span class="stat-label">citation_agent</span><span class="stat-value">~65s</span></div><div class="stat-item"><span class="stat-label">ingestion_agent</span><span class="stat-value">~63s</span></div><div class="stat-item"><span class="stat-label">synthesis_agent</span><span class="stat-value">~86s</span></div>
+        </div>
 
-        // Event list
-        var events = [{"id": "54ab40b9", "type": "GOAL_CREATED", "agent": "ingestion_agent"}, {"id": "7b6b74ae", "type": "REASONING_STEP", "agent": "ingestion_agent"}, {"id": "b091aa55", "type": "TOOL_INVOKED", "agent": "ingestion_agent"}, {"id": "e6fb3f93", "type": "REASONING_STEP", "agent": "ingestion_agent"}, {"id": "bd37215f", "type": "GOAL_COMPLETED", "agent": "ingestion_agent"}, {"id": "8b1511e2", "type": "GOAL_CREATED", "agent": "analysis_agent"}, {"id": "ef93a76e", "type": "REASONING_STEP", "agent": "analysis_agent"}, {"id": "0b118a73", "type": "TOOL_INVOKED", "agent": "analysis_agent"}, {"id": "ddd144d7", "type": "REASONING_STEP", "agent": "analysis_agent"}, {"id": "c3d2e83c", "type": "GOAL_COMPLETED", "agent": "analysis_agent"}, {"id": "940febe4", "type": "GOAL_CREATED", "agent": "citation_agent"}, {"id": "726efe40", "type": "REASONING_STEP", "agent": "citation_agent"}, {"id": "080b3105", "type": "TOOL_INVOKED", "agent": "citation_agent"}, {"id": "6238a8c9", "type": "REASONING_STEP", "agent": "citation_agent"}, {"id": "9734f355", "type": "GOAL_COMPLETED", "agent": "citation_agent"}, {"id": "e9f3d731", "type": "GOAL_CREATED", "agent": "synthesis_agent"}, {"id": "25ed8f95", "type": "REASONING_STEP", "agent": "synthesis_agent"}, {"id": "b484b959", "type": "TOOL_INVOKED", "agent": "synthesis_agent"}, {"id": "72325ec7", "type": "REASONING_STEP", "agent": "synthesis_agent"}, {"id": "d8d61f3c", "type": "GOAL_COMPLETED", "agent": "synthesis_agent"}];
-        var eventListHtml = events.map((e, i) => 
-            `<div class="event-item" onclick="selectEvent('${e.id}')">
-                <div class="event-type">${i+1}. ${e.type}</div>
-                <div class="event-agent">${e.agent}</div>
-            </div>`
-        ).join('');
-        document.getElementById('eventList').innerHTML = eventListHtml;
+        <!-- CENTRE -->
+        <div class="net-wrap">
+            <div id="network"></div>
+            <div class="controls">
+                <button onclick="zoomIn()">🔍+</button>
+                <button onclick="zoomOut()">🔍−</button>
+                <button onclick="fitToScreen()">📐 Fit</button>
+                <button onclick="resetPhysics()">🔄 Reset</button>
+                <button onclick="toggleHandoffs()">🔗 Handoffs</button>
+                <button onclick="downloadPNG()">💾 PNG</button>
+            </div>
+        </div>
 
-        function selectEvent(eventId) {
-            var allEvents = [{"event_id": "54ab40b9-099d-4660-9b03-d902b8eec90f", "event_type": "GOAL_CREATED", "agent_id": "ingestion_agent", "timestamp": 1772642417.000399, "correlation_id": "research_paper_001", "payload": {"goal": "Extract metadata from papers/paper.pdf", "role": "PDF ingestion specialist", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772642417.0003917}}, {"event_id": "7b6b74ae-bfdb-4f9c-b8e3-95c526e762fa", "event_type": "REASONING_STEP", "agent_id": "ingestion_agent", "timestamp": 1772642417.000406, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Extract metadata from papers/paper.pdf", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "b091aa55-35c3-4a74-9fd1-9986861abc07", "event_type": "TOOL_INVOKED", "agent_id": "ingestion_agent", "timestamp": 1772642475.819332, "correlation_id": "research_paper_001", "payload": {"tool": "ingest_paper", "params": {"file_path": "papers/paper.pdf"}, "reasoning_snippet": "TOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf"}}, {"event_id": "e6fb3f93-c7ef-4f08-b728-d59558f86aac", "event_type": "REASONING_STEP", "agent_id": "ingestion_agent", "timestamp": 1772642477.717937, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "ingest_paper", "result_length": 83561}}, {"event_id": "bd37215f-ca00-4152-bbb9-407ca4abac44", "event_type": "GOAL_COMPLETED", "agent_id": "ingestion_agent", "timestamp": 1772642477.718277, "correlation_id": "research_paper_001", "payload": {"result": "PaperMetadata(title='future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for S", "tool_used": "ingest_paper", "status": "success"}}, {"event_id": "8b1511e2-d709-478a-b137-f32306f0f78a", "event_type": "GOAL_CREATED", "agent_id": "analysis_agent", "timestamp": 1772642479.632623, "correlation_id": "research_paper_001", "payload": {"goal": "The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.", "role": "research content analyzer", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772642479.6326125}}, {"event_id": "ef93a76e-a5a4-4da8-b226-2117e2b9633b", "event_type": "REASONING_STEP", "agent_id": "analysis_agent", "timestamp": 1772642479.632632, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "0b118a73-cdd5-42d7-86b5-7cc6a951036b", "event_type": "TOOL_INVOKED", "agent_id": "analysis_agent", "timestamp": 1772642545.263866, "correlation_id": "research_paper_001", "payload": {"tool": "extract_findings", "params": {"paper": "<injected>"}, "reasoning_snippet": "TOOL_NAME: extract_findings\nPARAM_paper: <injected>"}}, {"event_id": "ddd144d7-af34-4ef7-b458-e7fb1024b282", "event_type": "REASONING_STEP", "agent_id": "analysis_agent", "timestamp": 1772642545.26813, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "extract_findings", "result_length": 3935}}, {"event_id": "c3d2e83c-2612-4963-bd6b-677b8eb98671", "event_type": "GOAL_COMPLETED", "agent_id": "analysis_agent", "timestamp": 1772642545.268169, "correlation_id": "research_paper_001", "payload": {"result": "{'main_contribution': 'When a natural or human disaster occurs time is critical and often of vital i", "tool_used": "extract_findings", "status": "success"}}, {"event_id": "940febe4-fd80-47b7-ae9d-14137e52acc4", "event_type": "GOAL_CREATED", "agent_id": "citation_agent", "timestamp": 1772642545.27334, "correlation_id": "research_paper_001", "payload": {"goal": "Validate citations and map relationships", "role": "citation validator", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772642545.273326}}, {"event_id": "726efe40-9a20-4125-aae2-88480f9d6511", "event_type": "REASONING_STEP", "agent_id": "citation_agent", "timestamp": 1772642545.273351, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Validate citations and map relationships", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "080b3105-5fe1-4319-b23d-7ce0669feec8", "event_type": "TOOL_INVOKED", "agent_id": "citation_agent", "timestamp": 1772642648.430311, "correlation_id": "research_paper_001", "payload": {"tool": "validate_citations", "params": {"paper": "paper_metadata", "sample_size": "100"}, "reasoning_snippet": "TOOL_NAME: validate_citations\nPARAM_paper: paper_metadata\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper_metadata"}}, {"event_id": "6238a8c9-5829-42db-8e59-247e6239277a", "event_type": "REASONING_STEP", "agent_id": "citation_agent", "timestamp": 1772642648.430365, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "validate_citations", "result_length": 93}}, {"event_id": "9734f355-8358-4ac2-83c1-31f2c7705c78", "event_type": "GOAL_COMPLETED", "agent_id": "citation_agent", "timestamp": 1772642648.430374, "correlation_id": "research_paper_001", "payload": {"result": "{'total_citations': 42, 'validated': 40, 'validation_rate': 0.9523809523809523, 'issues': []}", "tool_used": "validate_citations", "status": "success"}}, {"event_id": "e9f3d731-8dd7-40a6-95b5-f9d15278c60b", "event_type": "GOAL_CREATED", "agent_id": "synthesis_agent", "timestamp": 1772642648.430959, "correlation_id": "research_paper_001", "payload": {"goal": "All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.", "role": "synthesis specialist", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1772642648.4309502}}, {"event_id": "25ed8f95-6477-4e30-8c86-876065aeb880", "event_type": "REASONING_STEP", "agent_id": "synthesis_agent", "timestamp": 1772642648.430968, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "b484b959-17f6-488f-b4af-1dc20ef4040a", "event_type": "TOOL_INVOKED", "agent_id": "synthesis_agent", "timestamp": 1772642718.514048, "correlation_id": "research_paper_001", "payload": {"tool": "synthesize", "params": {"findings": "<provide the findings here>", "citations": "<provide the citations here>", "relationships": "<provide the relationships here>"}, "reasoning_snippet": "TOOL_NAME: synthesize\nPARAM_findings: <provide the findings here>\nPARAM_citations: <provide the citations here>\nPARAM_relationships: <provide the relationships here>"}}, {"event_id": "72325ec7-86be-4bf1-b1a4-cf7cb0a9c63c", "event_type": "REASONING_STEP", "agent_id": "synthesis_agent", "timestamp": 1772642718.514118, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "synthesize", "result_length": 588}}, {"event_id": "d8d61f3c-5e9c-4b91-bd18-453f4445ebc1", "event_type": "GOAL_COMPLETED", "agent_id": "synthesis_agent", "timestamp": 1772642718.514131, "correlation_id": "research_paper_001", "payload": {"result": "Contribution: When a natural or human disaster occurs time is critical and often of vital importance", "tool_used": "synthesize", "status": "success"}}];
-            var event = allEvents.find(e => e.event_id.startsWith(eventId));
-            if (event) {
-                var html = `
-                    <strong>${event.event_type}</strong><br>
-                    Agent: <strong>${event.agent_id}</strong><br>
-                    Time: ${event.timestamp.toFixed(3)}<br>
-                    <hr>
-                    <strong>Payload:</strong><br>
-                    <pre>${JSON.stringify(event.payload, null, 2).substring(0, 500)}</pre>
-                `;
-                document.getElementById('eventInfo').innerHTML = html;
-                nodes.update({id: event.event_id, borderWidth: 4});
-            }
-        }
+        <!-- RIGHT SIDEBAR -->
+        <div class="right-sidebar">
+            <h3>📋 Event Timeline</h3>
+            <div class="callout">
+                <strong>Observation:</strong> 4 isolated subgraphs — no cross-agent causal edges reconstructed. Toggle <b>🔗 Handoffs</b> to see implicit pipeline dependencies.
+            </div>
+            <div id="eventList"></div>
+            <div class="info-panel">
+                <div style="font-weight:bold;color:#333;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:8px">ℹ️ Selected Event</div>
+                <div id="eventInfo" style="color:#666;line-height:1.5">Click a node or event to inspect payload</div>
+            </div>
+        </div>
 
-        function zoomIn() {
-            var scale = network.getScale();
-            network.setOptions({ physics: false });
-            network.moveTo({ scale: scale * 1.2 });
-        }
+    </div>
+</div>
 
-        function zoomOut() {
-            var scale = network.getScale();
-            network.setOptions({ physics: false });
-            network.moveTo({ scale: scale / 1.2 });
-        }
+<script>
+var AGENT_CLASS = {
+    ingestion_agent:'ag-ingestion', analysis_agent:'ag-analysis',
+    citation_agent:'ag-citation',   synthesis_agent:'ag-synthesis'
+};
 
-        function fitToScreen() {
-            network.fit({ animation: true });
-        }
+var allEvents  = [{"event_id": "5dea4c41-29f8-4008-8bcd-582bc1347e31", "event_type": "GOAL_CREATED", "agent_id": "ingestion_agent", "timestamp": 1773842290.542333, "correlation_id": "research_paper_001", "payload": {"goal": "Extract metadata from papers/paper.pdf", "role": "PDF ingestion specialist", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1773842290.542325}}, {"event_id": "4952bcf7-e6de-431f-8d11-910cc3373e90", "event_type": "REASONING_STEP", "agent_id": "ingestion_agent", "timestamp": 1773842290.542341, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Extract metadata from papers/paper.pdf", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "ec92dc39-a914-4be6-9b2c-3cbbe07e1892", "event_type": "TOOL_INVOKED", "agent_id": "ingestion_agent", "timestamp": 1773842351.964175, "correlation_id": "research_paper_001", "payload": {"tool": "ingest_paper", "params": {"file_path": "papers/paper.pdf"}, "reasoning_snippet": "TOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf"}}, {"event_id": "9fd8b086-620c-475e-89f8-685a35495b6c", "event_type": "REASONING_STEP", "agent_id": "ingestion_agent", "timestamp": 1773842353.600575, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "ingest_paper", "result_length": 79741}}, {"event_id": "ebd9b7b9-49c0-4dc1-bb49-192a25d9485b", "event_type": "GOAL_COMPLETED", "agent_id": "ingestion_agent", "timestamp": 1773842353.600855, "correlation_id": "research_paper_001", "payload": {"result": "PaperMetadata(title='future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for S", "tool_used": "ingest_paper", "status": "success"}}, {"event_id": "a95f5169-1069-47d8-a73b-72b10b62d5de", "event_type": "GOAL_CREATED", "agent_id": "analysis_agent", "timestamp": 1773842355.174112, "correlation_id": "research_paper_001", "payload": {"goal": "The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.", "role": "research content analyzer", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1773842355.1740983}}, {"event_id": "aee24afc-68b5-4712-a0e6-b2d969aed5a1", "event_type": "REASONING_STEP", "agent_id": "analysis_agent", "timestamp": 1773842355.174123, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "c72aadbf-4496-4879-a839-a124ac3b9c92", "event_type": "TOOL_INVOKED", "agent_id": "analysis_agent", "timestamp": 1773842417.618458, "correlation_id": "research_paper_001", "payload": {"tool": "extract_findings", "params": {"paper": "<injected>"}, "reasoning_snippet": "TOOL_NAME: extract_findings\nPARAM_paper: <injected>"}}, {"event_id": "639589e7-6844-444d-86c4-b3117e01fe99", "event_type": "REASONING_STEP", "agent_id": "analysis_agent", "timestamp": 1773842417.620313, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "extract_findings", "result_length": 1144}}, {"event_id": "a92d2c39-5833-4e77-abaf-ef960da18f8f", "event_type": "GOAL_COMPLETED", "agent_id": "analysis_agent", "timestamp": 1773842417.620323, "correlation_id": "research_paper_001", "payload": {"result": "{'main_contribution': 'Whenanaturalorhum andisasteroccurs, timeiscriticalandoft enofvitalimportance.", "tool_used": "extract_findings", "status": "success"}}, {"event_id": "200b1e0b-6f36-4b8e-ab5a-6e245356b0ed", "event_type": "GOAL_CREATED", "agent_id": "citation_agent", "timestamp": 1773842417.622712, "correlation_id": "research_paper_001", "payload": {"goal": "Validate citations and map relationships", "role": "citation validator", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1773842417.6227043}}, {"event_id": "b6bcb9b8-6201-4855-b86b-a19a6d6d9206", "event_type": "REASONING_STEP", "agent_id": "citation_agent", "timestamp": 1773842417.622718, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "Validate citations and map relationships", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "884ed84f-65af-4020-a287-d392afa224b1", "event_type": "TOOL_INVOKED", "agent_id": "citation_agent", "timestamp": 1773842482.670749, "correlation_id": "research_paper_001", "payload": {"tool": "validate_citations", "params": {"paper": "paper_metadata", "sample_size": "100"}, "reasoning_snippet": "TOOL_NAME: validate_citations\nPARAM_paper: paper_metadata\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper_metadata"}}, {"event_id": "19a958f0-3b2d-4d76-a9af-5eb549b75201", "event_type": "REASONING_STEP", "agent_id": "citation_agent", "timestamp": 1773842482.670785, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "validate_citations", "result_length": 93}}, {"event_id": "0a193c42-9ecd-422a-be3a-401bc3613749", "event_type": "GOAL_COMPLETED", "agent_id": "citation_agent", "timestamp": 1773842482.670795, "correlation_id": "research_paper_001", "payload": {"result": "{'total_citations': 42, 'validated': 40, 'validation_rate': 0.9523809523809523, 'issues': []}", "tool_used": "validate_citations", "status": "success"}}, {"event_id": "7789309c-d0c6-48cd-8b5a-3c420c02d41b", "event_type": "GOAL_CREATED", "agent_id": "synthesis_agent", "timestamp": 1773842482.671238, "correlation_id": "research_paper_001", "payload": {"goal": "All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.", "role": "synthesis specialist", "tools_available": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"], "timestamp": 1773842482.6712317}}, {"event_id": "70d39e4b-9c97-4d2e-9dcb-b255e8e4799c", "event_type": "REASONING_STEP", "agent_id": "synthesis_agent", "timestamp": 1773842482.671245, "correlation_id": "research_paper_001", "payload": {"step": "analyze_goal", "goal": "All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.", "available_tools": ["ingest_paper", "search_content", "extract_findings", "validate_citations", "map_relationships", "synthesize"]}}, {"event_id": "1e77ae42-fe08-44c0-992a-4423c133fa06", "event_type": "TOOL_INVOKED", "agent_id": "synthesis_agent", "timestamp": 1773842568.836196, "correlation_id": "research_paper_001", "payload": {"tool": "synthesize", "params": {"findings": "<provide the findings here>", "citations": "<provide the citations here>", "relationships": "<provide the relationships here>"}, "reasoning_snippet": "TOOL_NAME: synthesize\nPARAM_findings: <provide the findings here>\nPARAM_citations: <provide the citations here>\nPARAM_relationships: <provide the relationships here>"}}, {"event_id": "56427702-ce5e-42da-a243-f73d3128c920", "event_type": "REASONING_STEP", "agent_id": "synthesis_agent", "timestamp": 1773842568.836262, "correlation_id": "research_paper_001", "payload": {"step": "process_tool_result", "tool": "synthesize", "result_length": 588}}, {"event_id": "a0b01608-1d27-4a49-9c1d-12d852ada851", "event_type": "GOAL_COMPLETED", "agent_id": "synthesis_agent", "timestamp": 1773842568.836277, "correlation_id": "research_paper_001", "payload": {"result": "Contribution: Whenanaturalorhum andisasteroccurs, timeiscriticalandoft enofvitalimportance. Datafrom", "tool_used": "synthesize", "status": "success"}}];
+var timelineData = [{"id": "5dea4c41", "type": "GOAL_CREATED", "agent": "ingestion_agent", "rel_ts": 0.0}, {"id": "4952bcf7", "type": "REASONING_STEP", "agent": "ingestion_agent", "rel_ts": 0.0}, {"id": "ec92dc39", "type": "TOOL_INVOKED", "agent": "ingestion_agent", "rel_ts": 61.4}, {"id": "9fd8b086", "type": "REASONING_STEP", "agent": "ingestion_agent", "rel_ts": 63.1}, {"id": "ebd9b7b9", "type": "GOAL_COMPLETED", "agent": "ingestion_agent", "rel_ts": 63.1}, {"id": "a95f5169", "type": "GOAL_CREATED", "agent": "analysis_agent", "rel_ts": 64.6}, {"id": "aee24afc", "type": "REASONING_STEP", "agent": "analysis_agent", "rel_ts": 64.6}, {"id": "c72aadbf", "type": "TOOL_INVOKED", "agent": "analysis_agent", "rel_ts": 127.1}, {"id": "639589e7", "type": "REASONING_STEP", "agent": "analysis_agent", "rel_ts": 127.1}, {"id": "a92d2c39", "type": "GOAL_COMPLETED", "agent": "analysis_agent", "rel_ts": 127.1}, {"id": "200b1e0b", "type": "GOAL_CREATED", "agent": "citation_agent", "rel_ts": 127.1}, {"id": "b6bcb9b8", "type": "REASONING_STEP", "agent": "citation_agent", "rel_ts": 127.1}, {"id": "884ed84f", "type": "TOOL_INVOKED", "agent": "citation_agent", "rel_ts": 192.1}, {"id": "19a958f0", "type": "REASONING_STEP", "agent": "citation_agent", "rel_ts": 192.1}, {"id": "0a193c42", "type": "GOAL_COMPLETED", "agent": "citation_agent", "rel_ts": 192.1}, {"id": "7789309c", "type": "GOAL_CREATED", "agent": "synthesis_agent", "rel_ts": 192.1}, {"id": "70d39e4b", "type": "REASONING_STEP", "agent": "synthesis_agent", "rel_ts": 192.1}, {"id": "1e77ae42", "type": "TOOL_INVOKED", "agent": "synthesis_agent", "rel_ts": 278.3}, {"id": "56427702", "type": "REASONING_STEP", "agent": "synthesis_agent", "rel_ts": 278.3}, {"id": "a0b01608", "type": "GOAL_COMPLETED", "agent": "synthesis_agent", "rel_ts": 278.3}];
+var handoffEdges = [{"id": "h0", "from": "ebd9b7b9-49c0-4dc1-bb49-192a25d9485b", "to": "a95f5169-1069-47d8-a73b-72b10b62d5de", "label": "pipeline handoff", "color": "#aaa", "dashes": true, "arrows": "to", "width": 1, "font": {"size": 9, "color": "#aaa", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "curvedCW", "roundness": 0.3}}, {"id": "h1", "from": "a92d2c39-5833-4e77-abaf-ef960da18f8f", "to": "200b1e0b-6f36-4b8e-ab5a-6e245356b0ed", "label": "pipeline handoff", "color": "#aaa", "dashes": true, "arrows": "to", "width": 1, "font": {"size": 9, "color": "#aaa", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "curvedCW", "roundness": 0.3}}, {"id": "h2", "from": "0a193c42-9ecd-422a-be3a-401bc3613749", "to": "7789309c-d0c6-48cd-8b5a-3c420c02d41b", "label": "pipeline handoff", "color": "#aaa", "dashes": true, "arrows": "to", "width": 1, "font": {"size": 9, "color": "#aaa", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "curvedCW", "roundness": 0.3}}];
 
-        function resetPhysics() {
-            network.setOptions({ physics: { enabled: true } });
-            network.stabilize();
-        }
+var nodes = new vis.DataSet([{"id": "5dea4c41-29f8-4008-8bcd-582bc1347e31", "label": "GOAL\nCREATED\ningestion\n(5dea4c)", "color": {"background": "#C8E6C9", "border": "#1565c0", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>ingestion_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"Extract metadata from papers/paper.pdf\",\n  \"role\": \"PDF ingestion specialist\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1773842290.542325\n}</pre>"}, {"id": "4952bcf7-e6de-431f-8d11-910cc3373e90", "label": "REASONING\nSTEP\ningestion\n(4952bc)", "color": {"background": "#E8F4F8", "border": "#1565c0", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>ingestion_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract metadata from papers/paper.pdf\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}</pre>"}, {"id": "ec92dc39-a914-4be6-9b2c-3cbbe07e1892", "label": "TOOL\nINVOKED\ningestion\n(ec92dc)", "color": {"background": "#F8BBD0", "border": "#1565c0", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "diamond", "font": {"size": 11, "color": "#333"}, "title": "<b>TOOL_INVOKED</b><br><small>ingestion_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"tool\": \"ingest_paper\",\n  \"params\": {\n    \"file_path\": \"papers/paper.pdf\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: ingest_paper\\nPARAM_file_path: papers/paper.pdf\"\n}</pre>"}, {"id": "9fd8b086-620c-475e-89f8-685a35495b6c", "label": "REASONING\nSTEP\ningestion\n(9fd8b0)", "color": {"background": "#E8F4F8", "border": "#1565c0", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>ingestion_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"ingest_paper\",\n  \"result_length\": 79741\n}</pre>"}, {"id": "ebd9b7b9-49c0-4dc1-bb49-192a25d9485b", "label": "GOAL\nCOMPLETED\ningestion\n(ebd9b7)", "color": {"background": "#B2DFDB", "border": "#1565c0", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_COMPLETED</b><br><small>ingestion_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"result\": \"PaperMetadata(title='future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for S\",\n  \"tool_used\": \"ingest_paper\",\n  \"status\": \"success\"\n}</pre>"}, {"id": "a95f5169-1069-47d8-a73b-72b10b62d5de", "label": "GOAL\nCREATED\nanalysis\n(a95f51)", "color": {"background": "#C8E6C9", "border": "#6a1b9a", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>analysis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.\",\n  \"role\": \"research content analyzer\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1773842355.1740983\n}</pre>"}, {"id": "aee24afc-68b5-4712-a0e6-b2d969aed5a1", "label": "REASONING\nSTEP\nanalysis\n(aee24a)", "color": {"background": "#E8F4F8", "border": "#6a1b9a", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>analysis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"The paper has already been ingested. Call extract_findings to extract key findings from the ingested paper. Do NOT call ingest_paper.\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}</pre>"}, {"id": "c72aadbf-4496-4879-a839-a124ac3b9c92", "label": "TOOL\nINVOKED\nanalysis\n(c72aad)", "color": {"background": "#F8BBD0", "border": "#e53935", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 3, "borderDashes": [4, 3], "shape": "diamond", "font": {"size": 11, "color": "#333"}, "title": "<b>TOOL_INVOKED</b><br><small>analysis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"tool\": \"extract_findings\",\n  \"params\": {\n    \"paper\": \"<injected>\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: extract_findings\\nPARAM_paper: <injected>\"\n}</pre>"}, {"id": "639589e7-6844-444d-86c4-b3117e01fe99", "label": "REASONING\nSTEP\nanalysis\n(639589)", "color": {"background": "#E8F4F8", "border": "#6a1b9a", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>analysis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"extract_findings\",\n  \"result_length\": 1144\n}</pre>"}, {"id": "a92d2c39-5833-4e77-abaf-ef960da18f8f", "label": "GOAL\nCOMPLETED\nanalysis\n(a92d2c)", "color": {"background": "#B2DFDB", "border": "#6a1b9a", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_COMPLETED</b><br><small>analysis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"result\": \"{'main_contribution': 'Whenanaturalorhum andisasteroccurs, timeiscriticalandoft enofvitalimportance.\",\n  \"tool_used\": \"extract_findings\",\n  \"status\": \"success\"\n}</pre>"}, {"id": "200b1e0b-6f36-4b8e-ab5a-6e245356b0ed", "label": "GOAL\nCREATED\ncitation\n(200b1e)", "color": {"background": "#C8E6C9", "border": "#2e7d32", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>citation_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"Validate citations and map relationships\",\n  \"role\": \"citation validator\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ],\n  \"timestamp\": 1773842417.6227043\n}</pre>"}, {"id": "b6bcb9b8-6201-4855-b86b-a19a6d6d9206", "label": "REASONING\nSTEP\ncitation\n(b6bcb9)", "color": {"background": "#E8F4F8", "border": "#2e7d32", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>citation_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Validate citations and map relationships\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"\n  ]\n}</pre>"}, {"id": "884ed84f-65af-4020-a287-d392afa224b1", "label": "TOOL\nINVOKED\ncitation\n(884ed8)", "color": {"background": "#F8BBD0", "border": "#2e7d32", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "diamond", "font": {"size": 11, "color": "#333"}, "title": "<b>TOOL_INVOKED</b><br><small>citation_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"tool\": \"validate_citations\",\n  \"params\": {\n    \"paper\": \"paper_metadata\",\n    \"sample_size\": \"100\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: validate_citations\\nPARAM_paper: paper_metadata\\nPARAM_sample_size: 100\\n\\nTOOL_NAME: map_relationships\\nPARAM_paper: paper_metadata\"\n}</pre>"}, {"id": "19a958f0-3b2d-4d76-a9af-5eb549b75201", "label": "REASONING\nSTEP\ncitation\n(19a958)", "color": {"background": "#E8F4F8", "border": "#2e7d32", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>citation_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"validate_citations\",\n  \"result_length\": 93\n}</pre>"}, {"id": "0a193c42-9ecd-422a-be3a-401bc3613749", "label": "GOAL\nCOMPLETED\ncitation\n(0a193c)", "color": {"background": "#B2DFDB", "border": "#2e7d32", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_COMPLETED</b><br><small>citation_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"result\": \"{'total_citations': 42, 'validated': 40, 'validation_rate': 0.9523809523809523, 'issues': []}\",\n  \"tool_used\": \"validate_citations\",\n  \"status\": \"success\"\n}</pre>"}, {"id": "7789309c-d0c6-48cd-8b5a-3c420c02d41b", "label": "GOAL\nCREATED\nsynthesis\n(778930)", "color": {"background": "#C8E6C9", "border": "#e65100", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>synthesis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.\",\n  \"role\": \"synthesis specialist\",\n  \"tools_available\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"syn</pre>"}, {"id": "70d39e4b-9c97-4d2e-9dcb-b255e8e4799c", "label": "REASONING\nSTEP\nsynthesis\n(70d39e)", "color": {"background": "#E8F4F8", "border": "#e65100", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>synthesis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"All findings, citations, and relationships are already available. Call synthesize NOW with findings, citations, and relationships. Do NOT call validate_citations, map_relationships, or extract_findings.\",\n  \"available_tools\": [\n    \"ingest_paper\",\n    \"search_content\",\n    \"extract_findings\",\n    \"validate_citations\",\n    \"map_relationships\",\n    \"synthesize\"</pre>"}, {"id": "1e77ae42-fe08-44c0-992a-4423c133fa06", "label": "TOOL\nINVOKED\nsynthesis\n(1e77ae)", "color": {"background": "#F8BBD0", "border": "#e53935", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 3, "borderDashes": [4, 3], "shape": "diamond", "font": {"size": 11, "color": "#333"}, "title": "<b>TOOL_INVOKED</b><br><small>synthesis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"tool\": \"synthesize\",\n  \"params\": {\n    \"findings\": \"<provide the findings here>\",\n    \"citations\": \"<provide the citations here>\",\n    \"relationships\": \"<provide the relationships here>\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: synthesize\\nPARAM_findings: <provide the findings here>\\nPARAM_citations: <provide the citations here>\\nPARAM_relationships: <provide the relationships here>\"\n}</pre>"}, {"id": "56427702-ce5e-42da-a243-f73d3128c920", "label": "REASONING\nSTEP\nsynthesis\n(564277)", "color": {"background": "#E8F4F8", "border": "#e65100", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>synthesis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"synthesize\",\n  \"result_length\": 588\n}</pre>"}, {"id": "a0b01608-1d27-4a49-9c1d-12d852ada851", "label": "GOAL\nCOMPLETED\nsynthesis\n(a0b016)", "color": {"background": "#B2DFDB", "border": "#e65100", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_COMPLETED</b><br><small>synthesis_agent</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"result\": \"Contribution: Whenanaturalorhum andisasteroccurs, timeiscriticalandoft enofvitalimportance. Datafrom\",\n  \"tool_used\": \"synthesize\",\n  \"status\": \"success\"\n}</pre>"}]);
+var edges = new vis.DataSet([{"from": "5dea4c41-29f8-4008-8bcd-582bc1347e31", "to": "4952bcf7-e6de-431f-8d11-910cc3373e90", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "639589e7-6844-444d-86c4-b3117e01fe99", "to": "a92d2c39-5833-4e77-abaf-ef960da18f8f", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "7789309c-d0c6-48cd-8b5a-3c420c02d41b", "to": "70d39e4b-9c97-4d2e-9dcb-b255e8e4799c", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "a95f5169-1069-47d8-a73b-72b10b62d5de", "to": "aee24afc-68b5-4712-a0e6-b2d969aed5a1", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "200b1e0b-6f36-4b8e-ab5a-6e245356b0ed", "to": "b6bcb9b8-6201-4855-b86b-a19a6d6d9206", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "b6bcb9b8-6201-4855-b86b-a19a6d6d9206", "to": "884ed84f-65af-4020-a287-d392afa224b1", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "4952bcf7-e6de-431f-8d11-910cc3373e90", "to": "ec92dc39-a914-4be6-9b2c-3cbbe07e1892", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "aee24afc-68b5-4712-a0e6-b2d969aed5a1", "to": "c72aadbf-4496-4879-a839-a124ac3b9c92", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "9fd8b086-620c-475e-89f8-685a35495b6c", "to": "ebd9b7b9-49c0-4dc1-bb49-192a25d9485b", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "56427702-ce5e-42da-a243-f73d3128c920", "to": "a0b01608-1d27-4a49-9c1d-12d852ada851", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "884ed84f-65af-4020-a287-d392afa224b1", "to": "19a958f0-3b2d-4d76-a9af-5eb549b75201", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "1e77ae42-fe08-44c0-992a-4423c133fa06", "to": "56427702-ce5e-42da-a243-f73d3128c920", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "70d39e4b-9c97-4d2e-9dcb-b255e8e4799c", "to": "1e77ae42-fe08-44c0-992a-4423c133fa06", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "19a958f0-3b2d-4d76-a9af-5eb549b75201", "to": "0a193c42-9ecd-422a-be3a-401bc3613749", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "c72aadbf-4496-4879-a839-a124ac3b9c92", "to": "639589e7-6844-444d-86c4-b3117e01fe99", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}]);
 
-        function downloadPNG() {
-            network.once("afterDrawing", function(ctx) {
-                var scaleFactor = 2; // higher resolution
-                var canvas = ctx.canvas;
+var network = new vis.Network(
+    document.getElementById('network'),
+    {nodes, edges},
+    {
+        physics:{enabled:true,stabilization:{iterations:300,fit:true},
+                  barnesHut:{gravitationalConstant:-28000,centralGravity:0.25,springLength:180}},
+        nodes:{shadow:{enabled:true,color:'rgba(0,0,0,.15)',size:8,x:4,y:4}},
+        edges:{arrows:{to:{enabled:true,scaleFactor:1.2}},
+               shadow:{enabled:true,color:'rgba(0,0,0,.08)',size:4,x:2,y:2}},
+        interaction:{hover:true,tooltipDelay:100},
+    }
+);
 
-                var exportCanvas = document.createElement("canvas");
-                exportCanvas.width = canvas.width * scaleFactor;
-                exportCanvas.height = canvas.height * scaleFactor;
+// Build timeline
+document.getElementById('eventList').innerHTML = timelineData.map((e,i) =>
+    `<div class="event-item" id="ei-${e.id}" onclick="selectById('${e.id}')">
+        <span class="event-ts">+${e.rel_ts}s</span>
+        <div class="event-type">${i+1}. ${e.type}</div>
+        <div><span class="agent-badge ${AGENT_CLASS[e.agent]||''}">${e.agent}</span></div>
+    </div>`
+).join('');
 
-                var exportCtx = exportCanvas.getContext("2d");
-                exportCtx.scale(scaleFactor, scaleFactor);
-                exportCtx.drawImage(canvas, 0, 0);
+function selectById(shortId) {
+    var ev = allEvents.find(e => e.event_id.startsWith(shortId));
+    if (!ev) return;
+    document.querySelectorAll('.event-item').forEach(el => el.classList.remove('selected'));
+    var el = document.getElementById('ei-' + shortId);
+    if (el) { el.classList.add('selected'); el.scrollIntoView({block:'nearest'}); }
 
-                var link = document.createElement("a");
-                link.href = exportCanvas.toDataURL("image/png");
-                link.download = "causal_dag_highres.png";
+    var hasGap = ev.event_type === 'TOOL_INVOKED' &&
+        JSON.stringify(ev.payload.params||{}).includes('<');
+    var gapHtml = hasGap
+        ? `<div class="gap-warning">⚠️ <b>Reasoning-execution gap:</b> LLM passed placeholder values.
+           Real objects were injected from pipeline state. The DAG records what the agent
+           <i>said</i> it would do, not what was actually passed.</div>` : '';
 
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
+    document.getElementById('eventInfo').innerHTML =
+        `<b>${ev.event_type}</b> &nbsp;·&nbsp;
+         <span class="agent-badge ${AGENT_CLASS[ev.agent_id]||''}">${ev.agent_id}</span><br>
+         <small style="color:#aaa">t = ${ev.timestamp.toFixed(3)}</small>
+         ${gapHtml}
+         <pre>${JSON.stringify(ev.payload, null, 2).substring(0, 600)}</pre>`;
 
-            network.redraw();
-        }
+    network.selectNodes([ev.event_id]);
+    network.focus(ev.event_id, {scale:1.1, animation:true});
 
-        // Click on node to show details
-        network.on('click', function(params) {
-            if (params.nodes.length > 0) {
-                var nodeId = params.nodes[0];
-                selectEvent(nodeId.substring(0, 8));
-            }
-        });
-    </script>
+    // Dim unrelated edges
+    var connected = network.getConnectedEdges(ev.event_id);
+    var allIds = edges.getIds();
+    edges.update(allIds.map(id => ({id, color: {opacity: connected.includes(id) ? 1.0 : 0.15}})));
+    network.once('blurNode', () =>
+        edges.update(allIds.map(id => ({id, color: {opacity: 0.8}})))
+    );
+}
+
+network.on('click', p => {
+    if (p.nodes.length) selectById(p.nodes[0].substring(0, 8));
+});
+
+var handoffsOn = false;
+function toggleHandoffs() {
+    handoffsOn = !handoffsOn;
+    if (handoffsOn) edges.add(handoffEdges);
+    else            edges.remove(handoffEdges.map(e => e.id));
+}
+function zoomIn()       { network.setOptions({physics:false}); network.moveTo({scale: network.getScale()*1.2}); }
+function zoomOut()      { network.setOptions({physics:false}); network.moveTo({scale: network.getScale()/1.2}); }
+function fitToScreen()  { network.fit({animation:true}); }
+function resetPhysics() { network.setOptions({physics:{enabled:true}}); network.stabilize(); }
+function downloadPNG()  {
+    network.once('afterDrawing', ctx => {
+        var c = ctx.canvas, ex = document.createElement('canvas');
+        ex.width = c.width*2; ex.height = c.height*2;
+        var x = ex.getContext('2d'); x.scale(2,2); x.drawImage(c,0,0);
+        var a = document.createElement('a');
+        a.href = ex.toDataURL('image/png'); a.download = 'spectra_dag.png'; a.click();
+    });
+    network.redraw();
+}
+</script>
 </body>
 </html>
