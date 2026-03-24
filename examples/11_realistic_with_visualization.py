@@ -9,6 +9,12 @@ from src.agents.simple import get_collector
 from reconstruction.dag_builder import DAGBuilder
 from visualization.dag_visualizer import DAGVisualizer
 
+from flowcept.instrumentation.flowcept_agent_task import (agent_flowcept_task, FlowceptLLM, get_current_context_task) 
+
+from visualization.prov_agent_models import ProvAgentMetadata 
+from visualization.prov_agent_converter import FlowceptToProvAgentConverter 
+from visualization.prov_agent_hallucination_detector import ProvAgentHallucinationDetector 
+
 def main():
     print("\n" + "="*100)
     print("EXAMPLE 11: Realistic Document Analysis with Mistral + Full Visualization")
@@ -107,7 +113,39 @@ Generated Files:
 This demonstrates SPECTRA working on REALISTIC, not synthetic, agent execution!
 """)
     print("="*100 + "\n")
+# NEW: PROV-AGENT Analysis 
+    print("\n" + "="*100)
 
+    print("PROV-AGENT ANALYSIS") 
+    print("="*100 + "\n") 
+
+    try: 
+      from flowcept import Flowcept 
+      flowcept_events = Flowcept.read_buffer_file() 
+      if flowcept_events: 
+         # Filter to agent tasks only (subtype='agent_task') 
+         # llm_task records are AIModelInvocations — handled separately 
+         agent_events = [e for e in flowcept_events if e.get('subtype') == 'agent_task'] 
+
+         prov_converter = FlowceptToProvAgentConverter() 
+         for task in agent_events: 
+               metadata = ProvAgentMetadata( 
+                  agent_name=task.get('activity_id', 'unknown'), 
+                  agent_role='task', 
+                  model_name='Mistral-7B', 
+                  confidence=0.9 
+               ) 
+               prov_converter.convert_flowcept_task(task, metadata)   
+         detector = ProvAgentHallucinationDetector() 
+         hallucinations = detector.analyze_events(prov_converter.get_events()) 
+         report = detector.generate_report('prov_agent_hallucination_report.json') 
+   
+         print(f"  Events analyzed    : {len(prov_converter.get_events())}") 
+         print(f"  Hallucinations     : {len(hallucinations)}") 
+         print(f"  Risk level         : {report['risk_level']}") 
+
+    except Exception as e: 
+      print(f"  PROV-AGENT analysis skipped: {e}") 
 
 if __name__ == "__main__":
     main()

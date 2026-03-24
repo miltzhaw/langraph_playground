@@ -1,0 +1,376 @@
+{
+  "workflow_metadata": {
+    "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+    "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+    "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+    "captured_at": "2026-03-24T09:44:45.824163",
+    "total_records": 8
+  },
+  "agent_tasks": [
+    {
+      "subtype": "agent_task",
+      "activity_id": "run_ingestion",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "used": {
+        "arg_0": {
+          "paper_path": "papers/paper.pdf"
+        },
+        "arg_1": "MistralAgent_instance_id_130899768648656"
+      },
+      "started_at": 1774345197.7270641,
+      "custom_metadata": {},
+      "task_id": "1774345197.7270641",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "status": "FINISHED",
+      "ended_at": 1774345256.6160967,
+      "generated": {
+        "paper_path": "papers/paper.pdf",
+        "last_reasoning": "TOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf",
+        "tool_result": "Tool execution failed: ingest_paper() got an unexpected keyword argument 'context'",
+        "paper": {
+          "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+          "authors": [],
+          "year": 2023,
+          "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+          "doi": "",
+          "pages": 18
+        }
+      },
+      "type": "task"
+    },
+    {
+      "subtype": "agent_task",
+      "activity_id": "run_analysis",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "used": {
+        "arg_0": {
+          "paper_path": "papers/paper.pdf",
+          "last_reasoning": "TOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf",
+          "tool_result": "Tool execution failed: ingest_paper() got an unexpected keyword argument 'context'",
+          "paper": {
+            "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+            "authors": [],
+            "year": 2023,
+            "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+            "doi": "",
+            "pages": 18
+          }
+        },
+        "arg_1": "MistralAgent_instance_id_130899742680144"
+      },
+      "started_at": 1774345256.6165302,
+      "custom_metadata": {},
+      "task_id": "1774345256.6165302",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "status": "FINISHED",
+      "ended_at": 1774345335.247216,
+      "generated": {
+        "paper_path": "papers/paper.pdf",
+        "last_reasoning": "TOOL_NAME: validate_citations\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\n\nTOOL_NAME: extract_findings\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\n\nTOOL_NAME: synthesize\nPARAM_findings: <injected>\nPARAM_citations: <injected>\nPARAM_relationships: <injected>",
+        "tool_result": "Tool execution failed: validate_citations() got an unexpected keyword argument 'context'",
+        "paper": {
+          "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+          "authors": [],
+          "year": 2023,
+          "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+          "doi": "",
+          "pages": 18
+        },
+        "analysis": {
+          "search_count": 0,
+          "key_contribution": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data togethe",
+          "key_results": [
+            "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation."
+          ],
+          "impact_score": 6.5,
+          "citations": 0
+        }
+      },
+      "type": "task"
+    },
+    {
+      "subtype": "agent_task",
+      "activity_id": "run_citation",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "used": {
+        "arg_0": {
+          "paper_path": "papers/paper.pdf",
+          "last_reasoning": "TOOL_NAME: validate_citations\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\n\nTOOL_NAME: extract_findings\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\n\nTOOL_NAME: synthesize\nPARAM_findings: <injected>\nPARAM_citations: <injected>\nPARAM_relationships: <injected>",
+          "tool_result": "Tool execution failed: validate_citations() got an unexpected keyword argument 'context'",
+          "paper": {
+            "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+            "authors": [],
+            "year": 2023,
+            "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+            "doi": "",
+            "pages": 18
+          },
+          "analysis": {
+            "search_count": 0,
+            "key_contribution": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data togethe",
+            "key_results": [
+              "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation."
+            ],
+            "impact_score": 6.5,
+            "citations": 0
+          }
+        },
+        "arg_1": "MistralAgent_instance_id_130899742681168"
+      },
+      "started_at": 1774345335.2476473,
+      "custom_metadata": {},
+      "task_id": "1774345335.2476473",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "status": "FINISHED",
+      "ended_at": 1774345397.0717866,
+      "generated": {
+        "paper_path": "papers/paper.pdf",
+        "last_reasoning": "TOOL_NAME: validate_citations\nPARAM_paper: paper_metadata_object\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper_metadata_object",
+        "tool_result": "Tool execution failed: validate_citations() got an unexpected keyword argument 'context'",
+        "paper": {
+          "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+          "authors": [],
+          "year": 2023,
+          "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+          "doi": "",
+          "pages": 18
+        },
+        "analysis": {
+          "search_count": 0,
+          "key_contribution": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data togethe",
+          "key_results": [
+            "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation."
+          ],
+          "impact_score": 6.5,
+          "citations": 0
+        },
+        "citations": {
+          "validated": 40,
+          "total": 42,
+          "validation_rate": 0.9523809523809523
+        },
+        "citation_clusters": {
+          "clusters": [
+            {
+              "name": "Cluster A",
+              "papers": 5
+            },
+            {
+              "name": "Cluster B",
+              "papers": 4
+            }
+          ],
+          "total": 12
+        }
+      },
+      "type": "task"
+    },
+    {
+      "subtype": "agent_task",
+      "activity_id": "run_synthesis",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "used": {
+        "arg_0": {
+          "paper_path": "papers/paper.pdf",
+          "last_reasoning": "TOOL_NAME: validate_citations\nPARAM_paper: paper_metadata_object\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper_metadata_object",
+          "tool_result": "Tool execution failed: validate_citations() got an unexpected keyword argument 'context'",
+          "paper": {
+            "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+            "authors": [],
+            "year": 2023,
+            "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+            "doi": "",
+            "pages": 18
+          },
+          "analysis": {
+            "search_count": 0,
+            "key_contribution": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data togethe",
+            "key_results": [
+              "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation."
+            ],
+            "impact_score": 6.5,
+            "citations": 0
+          },
+          "citations": {
+            "validated": 40,
+            "total": 42,
+            "validation_rate": 0.9523809523809523
+          },
+          "citation_clusters": {
+            "clusters": [
+              {
+                "name": "Cluster A",
+                "papers": 5
+              },
+              {
+                "name": "Cluster B",
+                "papers": 4
+              }
+            ],
+            "total": 12
+          }
+        },
+        "arg_1": "MistralAgent_instance_id_130899742685968"
+      },
+      "started_at": 1774345397.0724492,
+      "custom_metadata": {},
+      "task_id": "1774345397.0724492",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "status": "FINISHED",
+      "ended_at": 1774345485.6307936,
+      "generated": {
+        "paper_path": "papers/paper.pdf",
+        "last_reasoning": "TOOL_NAME: validate_citations\nPARAM_paper: paper1\nPARAM_sample_size: 50\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper1\n\nTOOL_NAME: extract_findings\nPARAM_paper: paper1\n\nTOOL_NAME: synthesize\nPARAM_findings: findings1\nPARAM_citations: citations1\nPARAM_relationships: relationships1",
+        "tool_result": "Tool execution failed: validate_citations() got an unexpected keyword argument 'context'",
+        "paper": {
+          "title": "future internet Article The Cloud-to-Edge-to-Io T Continuum as an Enabler for Search and Rescue Operations Leonardo Militano1,*, Adriana Arteaga2, Giovanni Toffetti1 and Nathalie Mitton2",
+          "authors": [],
+          "year": 2023,
+          "abstract": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation. The challenges for SARoperations, the technologies and solutions for the cloud to edge to Io T continuum will be discussed in this paper Keywords: search and rescue robot operating system Internet of Things; edge computing cloud continuum orchestration computer vision wireless sensor networks cloud robotics distributed applications",
+          "doi": "",
+          "pages": 18
+        },
+        "analysis": {
+          "search_count": 0,
+          "key_contribution": "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data togethe",
+          "key_results": [
+            "When a natural or human disaster occurs time is critical and often of vital importance Data from the incident area containing the information to guide search and rescue (SAR) operations and improve intervention effectiveness should be collected as quickly as possible and with the highest accuracy possible Nowadays, rescuers are assisted by different robots able to fly climbor crawl, and with different sensors and wireless communication means However, the heterogeneity of devices and data together with the strong low delay requirements cause these technologies not yet to be used at their highest potential Cloudand Edge technologies have shown the capability to offer support to the Internet of Things (Io T) , complementing it with additional resources and functionalities Nonetheless, building a continuum from the Io T to the edge and to the cloud is still an open challenge SAR operations would benefit strongly from such a continuum Distributed applications and advanced resource orchestration solutions over the continuum in combination with proper software stacks reaching out to the edge of the network may enhance the response time and effective intervention for SARoperation."
+          ],
+          "impact_score": 6.5,
+          "citations": 0
+        },
+        "citations": {
+          "validated": 40,
+          "total": 42,
+          "validation_rate": 0.9523809523809523
+        },
+        "citation_clusters": {
+          "clusters": [
+            {
+              "name": "Cluster A",
+              "papers": 5
+            },
+            {
+              "name": "Cluster B",
+              "papers": 4
+            }
+          ],
+          "total": 12
+        },
+        "synthesis": "Contribution: None. Impact score: 6.5. Citation validation: 0.9523809523809523. Clusters: 2."
+      },
+      "type": "task"
+    }
+  ],
+  "llm_tasks": [
+    {
+      "activity_id": "llm_interaction",
+      "started_at": 1774345197.7271178,
+      "task_id": "1774345197.7271178_68_130900490425088_1868389144",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "parent_task_id": "1774345197.7270641",
+      "used": {
+        "prompt": "You are ingestion_agent, a PDF ingestion specialist agent.\n\nAvailable tools:\n- ingest_paper: Extract and clean text from a PDF file. ONLY param: file_path (str).\n- search_content: Search cleaned paper text. ONLY params: paper (PaperMetadata), query (str).\n- extract_findings: Extract key findings from an already-ingested paper. ONLY param: paper (PaperMetadata). Do NOT pass file_path. The paper object is injected automatically.\n- validate_citations: Validate citations in a paper. ONLY params: paper (PaperMetadata), sample_size (int, optional). Use this tool FIRST when the goal involves citation validation.\n- map_relationships: Map citation relationships in a paper. ONLY param: paper (PaperMetadata). Use this tool AFTER validate_citations, not instead of it.\n- synthesize: Produce final synthesis text. ONLY params: findings (dict), citations (dict), relationships (dict). Do NOT pass paper, file_path, or sample_size. All params are injected automatically from pipeline state.\n\nSTRICT MODE:\nYou ONLY decide which tool to use and with which parameters.\nNEVER summarize, explain, or analyze the paper.\nONLY use the parameter names listed for each tool. Do NOT invent extra parameters.\n\nWhen using a tool, format EXACTLY as:\n\nTOOL_NAME: <tool_name>\nPARAM_<input_name>: <value>\n\nExamples:\n\nTOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf\n\nTOOL_NAME: search_content\nPARAM_query: methodology\n\nIf no tool is needed, reply simply: \"NO_TOOL\".\n\n\nTask: Extract metadata from papers/paper.pdf\n\nWhat should you do?"
+      },
+      "subtype": "llm_task",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "custom_metadata": {
+        "class_name": "OllamaLLM",
+        "module": "langchain_ollama.llms",
+        "config": {
+          "_type": "ollama-llm"
+        }
+      },
+      "ended_at": 1774345254.743212,
+      "status": "FINISHED",
+      "generated": {
+        "response": " TOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf"
+      },
+      "type": "task"
+    },
+    {
+      "activity_id": "llm_interaction",
+      "started_at": 1774345256.6165893,
+      "task_id": "1774345256.6165893_68_130900490425088_2666964267",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "parent_task_id": "1774345256.6165302",
+      "used": {
+        "prompt": "You are analysis_agent, a research content analyzer agent.\n\nAvailable tools:\n- ingest_paper: Extract and clean text from a PDF file. ONLY param: file_path (str).\n- search_content: Search cleaned paper text. ONLY params: paper (PaperMetadata), query (str).\n- extract_findings: Extract key findings from an already-ingested paper. ONLY param: paper (PaperMetadata). Do NOT pass file_path. The paper object is injected automatically.\n- validate_citations: Validate citations in a paper. ONLY params: paper (PaperMetadata), sample_size (int, optional). Use this tool FIRST when the goal involves citation validation.\n- map_relationships: Map citation relationships in a paper. ONLY param: paper (PaperMetadata). Use this tool AFTER validate_citations, not instead of it.\n- synthesize: Produce final synthesis text. ONLY params: findings (dict), citations (dict), relationships (dict). Do NOT pass paper, file_path, or sample_size. All params are injected automatically from pipeline state.\n\nSTRICT MODE:\nYou ONLY decide which tool to use and with which parameters.\nNEVER summarize, explain, or analyze the paper.\nONLY use the parameter names listed for each tool. Do NOT invent extra parameters.\n\nWhen using a tool, format EXACTLY as:\n\nTOOL_NAME: <tool_name>\nPARAM_<input_name>: <value>\n\nExamples:\n\nTOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf\n\nTOOL_NAME: search_content\nPARAM_query: methodology\n\nIf no tool is needed, reply simply: \"NO_TOOL\".\n\n\nTask: Analyze paper content and findings\n\nWhat should you do?"
+      },
+      "subtype": "llm_task",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "custom_metadata": {
+        "class_name": "OllamaLLM",
+        "module": "langchain_ollama.llms",
+        "config": {
+          "_type": "ollama-llm"
+        }
+      },
+      "ended_at": 1774345335.2470336,
+      "status": "FINISHED",
+      "generated": {
+        "response": " TOOL_NAME: validate_citations\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\n\nTOOL_NAME: extract_findings\nPARAM_paper: PaperMetadata(file_path='papers/paper.pdf')\n\nTOOL_NAME: synthesize\nPARAM_findings: <injected>\nPARAM_citations: <injected>\nPARAM_relationships: <injected>"
+      },
+      "type": "task"
+    },
+    {
+      "activity_id": "llm_interaction",
+      "started_at": 1774345335.2476978,
+      "task_id": "1774345335.2476978_68_130900490425088_1540429609",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "parent_task_id": "1774345335.2476473",
+      "used": {
+        "prompt": "You are citation_agent, a citation validator agent.\n\nAvailable tools:\n- ingest_paper: Extract and clean text from a PDF file. ONLY param: file_path (str).\n- search_content: Search cleaned paper text. ONLY params: paper (PaperMetadata), query (str).\n- extract_findings: Extract key findings from an already-ingested paper. ONLY param: paper (PaperMetadata). Do NOT pass file_path. The paper object is injected automatically.\n- validate_citations: Validate citations in a paper. ONLY params: paper (PaperMetadata), sample_size (int, optional). Use this tool FIRST when the goal involves citation validation.\n- map_relationships: Map citation relationships in a paper. ONLY param: paper (PaperMetadata). Use this tool AFTER validate_citations, not instead of it.\n- synthesize: Produce final synthesis text. ONLY params: findings (dict), citations (dict), relationships (dict). Do NOT pass paper, file_path, or sample_size. All params are injected automatically from pipeline state.\n\nSTRICT MODE:\nYou ONLY decide which tool to use and with which parameters.\nNEVER summarize, explain, or analyze the paper.\nONLY use the parameter names listed for each tool. Do NOT invent extra parameters.\n\nWhen using a tool, format EXACTLY as:\n\nTOOL_NAME: <tool_name>\nPARAM_<input_name>: <value>\n\nExamples:\n\nTOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf\n\nTOOL_NAME: search_content\nPARAM_query: methodology\n\nIf no tool is needed, reply simply: \"NO_TOOL\".\n\n\nTask: Validate citations and map relationships\n\nWhat should you do?"
+      },
+      "subtype": "llm_task",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "custom_metadata": {
+        "class_name": "OllamaLLM",
+        "module": "langchain_ollama.llms",
+        "config": {
+          "_type": "ollama-llm"
+        }
+      },
+      "ended_at": 1774345397.0716295,
+      "status": "FINISHED",
+      "generated": {
+        "response": " TOOL_NAME: validate_citations\nPARAM_paper: paper_metadata_object\nPARAM_sample_size: 100\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper_metadata_object"
+      },
+      "type": "task"
+    },
+    {
+      "activity_id": "llm_interaction",
+      "started_at": 1774345397.0725424,
+      "task_id": "1774345397.0725424_68_130900490425088_3025764862",
+      "workflow_id": "ad429abd-0a92-4f23-b46d-8bc2603d894d",
+      "campaign_id": "791d7985-7dc9-485a-8a0b-0f37cccc7b16",
+      "parent_task_id": "1774345397.0724492",
+      "used": {
+        "prompt": "You are synthesis_agent, a synthesis specialist agent.\n\nAvailable tools:\n- ingest_paper: Extract and clean text from a PDF file. ONLY param: file_path (str).\n- search_content: Search cleaned paper text. ONLY params: paper (PaperMetadata), query (str).\n- extract_findings: Extract key findings from an already-ingested paper. ONLY param: paper (PaperMetadata). Do NOT pass file_path. The paper object is injected automatically.\n- validate_citations: Validate citations in a paper. ONLY params: paper (PaperMetadata), sample_size (int, optional). Use this tool FIRST when the goal involves citation validation.\n- map_relationships: Map citation relationships in a paper. ONLY param: paper (PaperMetadata). Use this tool AFTER validate_citations, not instead of it.\n- synthesize: Produce final synthesis text. ONLY params: findings (dict), citations (dict), relationships (dict). Do NOT pass paper, file_path, or sample_size. All params are injected automatically from pipeline state.\n\nSTRICT MODE:\nYou ONLY decide which tool to use and with which parameters.\nNEVER summarize, explain, or analyze the paper.\nONLY use the parameter names listed for each tool. Do NOT invent extra parameters.\n\nWhen using a tool, format EXACTLY as:\n\nTOOL_NAME: <tool_name>\nPARAM_<input_name>: <value>\n\nExamples:\n\nTOOL_NAME: ingest_paper\nPARAM_file_path: papers/paper.pdf\n\nTOOL_NAME: search_content\nPARAM_query: methodology\n\nIf no tool is needed, reply simply: \"NO_TOOL\".\n\n\nTask: Synthesize comprehensive analysis\n\nWhat should you do?"
+      },
+      "subtype": "llm_task",
+      "agent_id": "1f0a024b-fa12-43e9-9bf2-5880d0950fb9",
+      "custom_metadata": {
+        "class_name": "OllamaLLM",
+        "module": "langchain_ollama.llms",
+        "config": {
+          "_type": "ollama-llm"
+        }
+      },
+      "ended_at": 1774345485.6305687,
+      "status": "FINISHED",
+      "generated": {
+        "response": " TOOL_NAME: validate_citations\nPARAM_paper: paper1\nPARAM_sample_size: 50\n\nTOOL_NAME: map_relationships\nPARAM_paper: paper1\n\nTOOL_NAME: extract_findings\nPARAM_paper: paper1\n\nTOOL_NAME: synthesize\nPARAM_findings: findings1\nPARAM_citations: citations1\nPARAM_relationships: relationships1"
+      },
+      "type": "task"
+    }
+  ],
+  "other_tasks": []
+}

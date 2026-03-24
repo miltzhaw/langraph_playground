@@ -1,0 +1,45 @@
+
+digraph CausalDAG {
+    rankdir=TB;
+    bgcolor=white;
+    node [shape=box, style=filled, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+
+        "bfc207fc-a7bd-4f15-a244-acf8d78c575e" [label="GOAL_CREATED\n(bfc207fc)", fillcolor="#C8E6C9"];
+    "8308ecb1-740e-40bd-b3e6-a894e1d64b36" [label="REASONING_STEP\n(8308ecb1)", fillcolor="#E8F4F8"];
+    "da92473d-bd5c-42f5-b5e0-9459a2f3994a" [label="TOOL_INVOKED\n(da92473d)", fillcolor="#F8BBD0"];
+    "be573d3e-000b-4d34-b70b-7741033dc100" [label="REASONING_STEP\n(be573d3e)", fillcolor="#E8F4F8"];
+    "f3568e8b-5683-4fa3-80af-8bda52a613aa" [label="GOAL_COMPLETED\n(f3568e8b)", fillcolor="#C8E6C9"];
+    "5877ef69-0485-426e-bd31-bb1a1e89eb34" [label="GOAL_CREATED\n(5877ef69)", fillcolor="#C8E6C9"];
+    "11f3cda0-5f32-4c05-bc73-9f53844cc7e5" [label="REASONING_STEP\n(11f3cda0)", fillcolor="#E8F4F8"];
+    "eaeca300-aaaa-4511-9862-a0e081adae87" [label="TOOL_INVOKED\n(eaeca300)", fillcolor="#F8BBD0"];
+    "8270dabc-56f2-44ca-aba9-d68c10098421" [label="REASONING_STEP\n(8270dabc)", fillcolor="#E8F4F8"];
+    "66be5f91-1039-46a8-a94b-b20b326a4716" [label="GOAL_COMPLETED\n(66be5f91)", fillcolor="#C8E6C9"];
+    "d30b6ba5-c982-40f3-9337-56b24561c971" [label="GOAL_CREATED\n(d30b6ba5)", fillcolor="#C8E6C9"];
+    "58913cb1-990a-412f-bc34-a3b76bfa036c" [label="REASONING_STEP\n(58913cb1)", fillcolor="#E8F4F8"];
+    "b5ccf28c-7f6e-4ac0-8688-fe546a4fa5e7" [label="TOOL_INVOKED\n(b5ccf28c)", fillcolor="#F8BBD0"];
+    "07c7b420-1416-45bc-96d3-bcc16c7dbbcf" [label="REASONING_STEP\n(07c7b420)", fillcolor="#E8F4F8"];
+    "45e48e21-2436-4d60-a664-7081fa995a59" [label="GOAL_COMPLETED\n(45e48e21)", fillcolor="#C8E6C9"];
+    "5897cf5a-6575-42d6-a791-694ddcf1ad43" [label="GOAL_CREATED\n(5897cf5a)", fillcolor="#C8E6C9"];
+    "f2e8e7f6-30c2-4caa-8cfe-31ba4af7c9aa" [label="REASONING_STEP\n(f2e8e7f6)", fillcolor="#E8F4F8"];
+    "f7c7dd01-6a17-4d51-98db-1384d46d32de" [label="TOOL_INVOKED\n(f7c7dd01)", fillcolor="#F8BBD0"];
+    "d449e80e-2776-4b4f-bcb7-d582a35fbb6c" [label="REASONING_STEP\n(d449e80e)", fillcolor="#E8F4F8"];
+    "cb649284-709e-4606-9ff7-c69a702a4f5e" [label="GOAL_COMPLETED\n(cb649284)", fillcolor="#C8E6C9"];
+
+        "eaeca300-aaaa-4511-9862-a0e081adae87" -> "8270dabc-56f2-44ca-aba9-d68c10098421" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "58913cb1-990a-412f-bc34-a3b76bfa036c" -> "b5ccf28c-7f6e-4ac0-8688-fe546a4fa5e7" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "5877ef69-0485-426e-bd31-bb1a1e89eb34" -> "11f3cda0-5f32-4c05-bc73-9f53844cc7e5" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "f2e8e7f6-30c2-4caa-8cfe-31ba4af7c9aa" -> "f7c7dd01-6a17-4d51-98db-1384d46d32de" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "d30b6ba5-c982-40f3-9337-56b24561c971" -> "58913cb1-990a-412f-bc34-a3b76bfa036c" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "da92473d-bd5c-42f5-b5e0-9459a2f3994a" -> "be573d3e-000b-4d34-b70b-7741033dc100" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "11f3cda0-5f32-4c05-bc73-9f53844cc7e5" -> "eaeca300-aaaa-4511-9862-a0e081adae87" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "d449e80e-2776-4b4f-bcb7-d582a35fbb6c" -> "cb649284-709e-4606-9ff7-c69a702a4f5e" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "be573d3e-000b-4d34-b70b-7741033dc100" -> "f3568e8b-5683-4fa3-80af-8bda52a613aa" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "07c7b420-1416-45bc-96d3-bcc16c7dbbcf" -> "45e48e21-2436-4d60-a664-7081fa995a59" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "bfc207fc-a7bd-4f15-a244-acf8d78c575e" -> "8308ecb1-740e-40bd-b3e6-a894e1d64b36" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "5897cf5a-6575-42d6-a791-694ddcf1ad43" -> "f2e8e7f6-30c2-4caa-8cfe-31ba4af7c9aa" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "f7c7dd01-6a17-4d51-98db-1384d46d32de" -> "d449e80e-2776-4b4f-bcb7-d582a35fbb6c" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "b5ccf28c-7f6e-4ac0-8688-fe546a4fa5e7" -> "07c7b420-1416-45bc-96d3-bcc16c7dbbcf" [label="inferred by proximity", color="#95E1D3", penwidth=2.0];
+    "8270dabc-56f2-44ca-aba9-d68c10098421" -> "66be5f91-1039-46a8-a94b-b20b326a4716" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+    "8308ecb1-740e-40bd-b3e6-a894e1d64b36" -> "da92473d-bd5c-42f5-b5e0-9459a2f3994a" [label="intra agent sequence", color="#4ECDC4", penwidth=2.0];
+}

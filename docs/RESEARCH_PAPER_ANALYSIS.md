@@ -1,413 +1,356 @@
-# Example 12: Research Paper Analysis Pipeline
+# Example 14: Research Paper Analysis — PROV-AGENT Edition
 
 ## Overview
 
-A realistic 4-agent workflow that demonstrates SPECTRA's ability to trace complex academic research workflows with **real LLM reasoning** and **realistic failure handling**. This example showcases:
+Example 14 is the primary PROV-AGENT demonstration. It extends the 4-agent research paper pipeline from Example 12 with full W3C PROV-AGENT instrumentation: every agent tool execution and every Mistral LLM call is captured as a typed provenance record, linked by the `wasInformedBy` relationship defined in the PROV-AGENT model.
 
-- **Independent LLM reasoning** at each agent stage
-- **Multi-agent coordination** with sequential dependencies
-- **Tool invocation tracking** with reasoning preservation
-- **Realistic failure modes** (citation validation timeout ~5%)
-- **Complete event chains** (16+ events per execution)
-- **Graceful degradation** when intermediate stages fail
-- **Comprehensive visualization** of academic workflows
-
-## Use Case
-
-Academic researchers, citation managers, and literature review systems need to process research papers through multiple analysis stages:
-
-1. **Ingestion**: Extract metadata from PDF
-2. **Analysis**: Search content and identify key findings
-3. **Citation Validation**: Verify reference integrity
-4. **Synthesis**: Compile comprehensive analysis report
-
-This mirrors real-world tools like:
-- ResearchGate metadata extraction
-- arXiv abstract analysis
-- Semantic Scholar citation mapping
-- Literature review automation
-
-## Workflow Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    RESEARCH PAPER ANALYSIS                   │
-└─────────────────────────────────────────────────────────────┘
-
-Input: PDF File
-
-    ▼
-┌──────────────────────┐
-│  INGESTION AGENT     │  Extract metadata using Mistral LLM
-│                      │  Real reasoning: "I should parse this PDF"
-└──────────────────────┘
-    │ delegates to
-    ▼
-┌──────────────────────┐
-│  ANALYSIS AGENT      │  Search content using Mistral LLM
-│                      │  Real reasoning: "I need to find key contributions"
-└──────────────────────┘
-    │ delegates to
-    ▼
-┌──────────────────────┐
-│  CITATION AGENT      │  Validate citations using Mistral LLM
-│                      │  Real reasoning: "I should verify references"
-│                      │  ⚠️  May fail with timeout (~5% chance)
-└──────────────────────┘
-    │ delegates to
-    ▼
-┌──────────────────────┐
-│  SYNTHESIS AGENT     │  Compile report using Mistral LLM
-│                      │  Real reasoning: "I should synthesize all findings"
-└──────────────────────┘
-
-Output: 16+ events, causal DAG with 4 agents
-        Complete trace of what each agent thought and did
-```
-
-## Key Difference from Other Examples
-
-**Real LLM Reasoning:**
-- Each agent uses Mistral LLM to independently decide what to do
-- LLM reasoning is captured in REASONING_STEP events
-- Tool invocation decisions come from LLM, not hardcoded logic
-- Failure modes are realistic (timeouts, parameter mismatches)
-
-**Event Capture:**
-```json
-{
-  "event_type": "REASONING_STEP",
-  "agent_id": "citation_agent",
-  "payload": {
-    "step": "analyze_goal",
-    "goal": "Validate citations in this paper",
-    "available_tools": ["validate_citations", "map_relationships"]
-  }
-}
-```
-
-This shows the LLM's thought process, not just the outcome.
-
-## Agents
-
-### 1. Ingestion Agent
-**Role**: PDF ingestion specialist  
-**LLM Decision**: "I should extract metadata from this PDF"
-
-**Tools Used**:
-- `ingest_paper(file_path)` - Parse PDF and extract title, authors, abstract, DOI, year, page count
-
-**Events Generated**:
-- `GOAL_CREATED` - Receives task to extract metadata
-- `REASONING_STEP` - LLM analyzes goal and available tools
-- `TOOL_INVOKED` - LLM decides to call ingest_paper with parameters
-- `GOAL_COMPLETED` or `GOAL_FAILED` - Success or tool error
-
-**Example Reasoning Snippet**:
-```
-"I need to extract metadata from the PDF. The ingest_paper tool
-is perfect for this task. I'll call it with the file path."
-```
-
-### 2. Analysis Agent
-**Role**: Research content analyzer  
-**LLM Decision**: "I should search for key contributions and findings"
-
-**Receives**: Delegation from Ingestion Agent with paper metadata
-
-**Tools Used**:
-- `search_content(paper, query)` - Find relevant sections
-- `extract_findings(paper)` - Identify contributions, results, impact
-
-**Events Generated**:
-- `GOAL_DELEGATED` - Receives task from previous agent
-- `REASONING_STEP` (2x) - Plan searches, analyze findings
-- `TOOL_INVOKED` (2x) - Content search, findings extraction
-- `GOAL_COMPLETED` or `GOAL_FAILED` - Analysis complete or failed
-
-**Example Reasoning Snippet**:
-```
-"The ingestion agent has extracted metadata. Now I should search
-for the key technical contributions and findings. I'll use
-search_content to find relevant sections, then extract_findings
-to summarize the main contributions."
-```
-
-### 3. Citation Agent
-**Role**: Citation validator and relationship mapper  
-**LLM Decision**: "I should validate citations and map research relationships"
-
-**Receives**: Delegation from Analysis Agent
-
-**Tools Used**:
-- `validate_citations(paper, sample_size)` - Check DOI validity, URL reachability
-  - ⚠️ **May fail** with "Citation database connection timeout" (~5% probability)
-- `map_relationships(paper)` - Find citation clusters and centrality
-
-**Events Generated**:
-- `GOAL_DELEGATED` - Receives task from previous agent
-- `REASONING_STEP` (2x) - Plan validation, relationship mapping
-- `TOOL_INVOKED` (2x) - Citation validation, relationship mapping
-- `GOAL_COMPLETED` or `GOAL_FAILED` - Depends on validation success
-
-**Failure Mode**:
-If citation validation times out, this agent fails with a clear error message. The failure event is recorded and propagates to the synthesis agent, which gracefully handles partial data.
-
-**Example Reasoning Snippet (Success)**:
-```
-"The analysis agent has identified key findings. Now I should
-validate the citations to ensure reference integrity, then map
-the relationships between cited papers to show research clusters."
-```
-
-**Example Reasoning Snippet (Failure)**:
-```
-"I attempted to validate citations, but the citation database
-timed out. The synthesis agent will need to work with partial data."
-```
-
-### 4. Synthesis Agent
-**Role**: Academic synthesis specialist  
-**LLM Decision**: "I should compile all analysis into a comprehensive report"
-
-**Receives**: Delegation from Citation Agent (or works with partial data if Citation failed)
-
-**Tools Used**:
-- `synthesize(findings, citations, relationships)` - Combine all analyses
-
-**Events Generated**:
-- `GOAL_DELEGATED` - Receives task from previous agent
-- `REASONING_STEP` - Plan synthesis approach
-- `TOOL_INVOKED` - Synthesis compilation
-- `GOAL_COMPLETED` - Report generated (even with partial data)
-
-**Example Reasoning Snippet**:
-```
-"I have received findings, citations, and relationships from
-previous agents. Now I should synthesize all this information
-into a coherent academic summary that captures the paper's
-significance and contributions."
-```
-
-## Event Flow and Causal Structure
-
-### Success Path (All Tools Work)
-
-```
-Time →
-
-ingestion_agent:
-  1. [GOAL_CREATED]      Extract metadata
-  2. [REASONING_STEP]    Analyze: "I should parse the PDF"
-  3. [TOOL_INVOKED]      Call ingest_paper with file path
-  4. [GOAL_COMPLETED]    Metadata extracted
-     ├─ Delegates to analysis_agent
-     │
-analysis_agent:
-     │  5. [GOAL_DELEGATED]    Analyze content
-     │  6. [REASONING_STEP]    Analyze: "I should search for findings"
-     │  7. [TOOL_INVOKED]      Call search_content
-     │  8. [REASONING_STEP]    Analyze: "I should extract key results"
-     │  9. [TOOL_INVOKED]      Call extract_findings
-     │ 10. [GOAL_COMPLETED]    Analysis complete
-     │     ├─ Delegates to citation_agent
-     │     │
-citation_agent:
-     │     │ 11. [GOAL_DELEGATED]    Validate citations
-     │     │ 12. [REASONING_STEP]    Analyze: "I should check references"
-     │     │ 13. [TOOL_INVOKED]      Call validate_citations
-     │     │ 14. [REASONING_STEP]    Analyze: "I should map relationships"
-     │     │ 15. [TOOL_INVOKED]      Call map_relationships
-     │     │ 16. [GOAL_COMPLETED]    Validation complete
-     │     │     ├─ Delegates to synthesis_agent
-     │     │     │
-synthesis_agent:
-     │     │     │ 17. [GOAL_DELEGATED]    Synthesize analysis
-     │     │     │ 18. [REASONING_STEP]    Analyze: "I should compile findings"
-     │     │     │ 19. [TOOL_INVOKED]      Call synthesize
-     │     │     │ 20. [GOAL_COMPLETED]    Report generated ✅
-
-Total: 20 events
-Causal edges: 19
-Agents: 4 (all successful)
-```
-
-### Failure Path (Citation Timeout)
-
-```
-Time →
-
-[Events 1-16: Same as success path until citation_agent]
-
-citation_agent:
-  11. [GOAL_DELEGATED]    Validate citations
-  12. [REASONING_STEP]    Analyze: "I should check references"
-  13. [TOOL_INVOKED]      Call validate_citations
-      ↓ [DATABASE TIMEOUT - 5% chance]
-  14. [GOAL_FAILED]       Validation failed ❌
-      ├─ Delegates to synthesis_agent (with partial data)
-      │
-synthesis_agent:
-      │ 15. [GOAL_DELEGATED]    Synthesize analysis (partial data)
-      │ 16. [REASONING_STEP]    Analyze: "Citation validation failed, use what we have"
-      │ 17. [TOOL_INVOKED]      Call synthesize with findings but no citations
-      │ 18. [GOAL_COMPLETED]    Report generated (degraded) ✅
-
-Total: 18 events
-Causal edges: 17
-Agents: 4 (citation failed, others succeeded)
-Failure handling: Graceful degradation
-```
-
-## Running the Example
-
-### Quick Start
-
-```bash
-# Run the example with simulated paper
-docker exec spectra-app python examples/12_research_paper_analysis.py
-
-# Analyze your own paper
-docker cp your_paper.pdf spectra-app:/app/papers/
-docker exec spectra-app python examples/12_research_paper_analysis.py papers/your_paper.pdf
-
-# View interactive visualization
-docker cp spectra-app:/app/research_paper_analysis_interactive.html ./
-open research_paper_analysis_interactive.html
-```
-
-## Output Files
-
-After running, four visualization files are generated:
-
-### 1. `research_paper_analysis_interactive.html`
-Interactive browser-based visualization with:
-- **Zoomable DAG**: All agents, events, and causal edges
-- **Node details**: Click to see full event payloads and reasoning
-- **Color coding**: Blue=CREATED, Green=COMPLETED, Red=FAILED, Orange=DELEGATED
-- **Timeline**: Event ordering with timestamps
-- **Failure highlighting**: Failed nodes and recovery paths
-
-### 2. `research_paper_analysis_visualization.md`
-Mermaid diagram for documentation:
-```mermaid
-graph LR
-    A["ingestion_agent<br/>GOAL_CREATED"] --> B["ingestion_agent<br/>REASONING_STEP"]
-    B --> C["ingestion_agent<br/>TOOL_INVOKED"]
-    ...
-```
-
-### 3. `research_paper_analysis_summary.md`
-Summary table with event counts and causal relationships
-
-### 4. `research_paper_analysis_visualization.dot`
-Graphviz format for publication-quality PNG/PDF
-
-## Key Metrics
-
-| Metric | Value |
-|--------|-------|
-| Total Events (success) | 20 |
-| Total Events (citation fails) | 18 |
-| Agents | 4 |
-| Event Types | GOAL_CREATED, REASONING_STEP, TOOL_INVOKED, GOAL_COMPLETED, GOAL_DELEGATED, GOAL_FAILED |
-| Causal Edges | 19 (success) / 17 (failure) |
-| Citation Timeout Rate | ~5% |
-| LLM Reasoning Captured | Yes (REASONING_STEP events) |
-| Tool Invocation Decisions | Real (from LLM) |
-
-## Failure Modes Demonstrated
-
-### Citation Validation Timeout (~5% probability)
-- **Root Cause**: Citation database connection timeout
-- **Detection**: SPECTRA captures TOOL_INVOKED → GOAL_FAILED sequence
-- **Visibility**: Full event trace shows what LLM tried and why it failed
-- **Recovery**: Synthesis agent receives partial data and completes successfully
-- **Insight**: Demonstrates graceful degradation in multi-agent systems
-
-## Why This Example Matters
-
-### Real LLM Reasoning
-Unlike synthetic examples, this shows **actual LLM decisions**:
-- Each agent uses Mistral to decide what to do
-- Reasoning is captured as events (not hidden)
-- Tool choices come from LLM analysis, not hardcoded logic
-
-### Realistic Failures
-- Tool timeouts happen in production
-- But with SPECTRA, you see exactly what was attempted and why
-- Complete audit trail for debugging
-
-### Complete Observability
-- Every decision point is logged
-- Every tool invocation is tracked
-- Every failure is documented
-- Full causal trace from reasoning to outcome
-
-## Extending This Example
-
-### Add Real PDF Processing
-```python
-import pdfplumber
-
-def ingest_paper(file_path: str) -> PaperMetadata:
-    """Actually parse PDF instead of simulating."""
-    with pdfplumber.open(file_path) as pdf:
-        first_page = pdf.pages[0].extract_text()
-        return PaperMetadata(...)
-```
-
-### Integrate Real APIs
-```python
-def validate_citations(paper: PaperMetadata) -> dict:
-    """Use CrossRef API for real citation validation."""
-    response = requests.get(f"https://api.crossref.org/works/{paper.doi}")
-    # Validate references...
-```
-
-### Add More Agents
-- Figure Extraction Agent: Extract and analyze figures/tables
-- Related Work Agent: Find and summarize related papers
-- Reproducibility Agent: Check code/data availability
-- Impact Analysis Agent: Analyze citations over time
-
-## Comparison to Other Examples
-
-| Aspect | Ex 1-10 (Synthetic) | Ex 11 (Realistic Doc) | Ex 12 (Research) |
-|--------|---------------------|----------------------|------------------|
-| LLM Reasoning | Simulated | Real Mistral | Real Mistral |
-| Tool Invocation | Injected | LLM-driven | LLM-driven |
-| Failure Modes | Artificial | Realistic | Realistic |
-| Agents | 2-3 | 4 | 4 |
-| Events | 5-10 | 15-20 | 16-20 |
-| Causal Edges | 3-8 | 10-15 | 12-19 |
-| Use Case | Proof-of-concept | General documents | Academic papers |
-| Production Ready | No | Yes | Yes |
-
-## Key Insights from Real Output
-
-When you run Example 12, you'll see:
-
-```
-COLLECTED EVENTS (16 total)
-1. [GOAL_CREATED]      ingestion_agent: Extract metadata
-2. [REASONING_STEP]    ingestion_agent: Agent analyzes what to do
-3. [TOOL_INVOKED]      ingestion_agent: Agent decides to call ingest_paper
-4. [GOAL_COMPLETED]    ingestion_agent: Successfully extracted metadata
-5. [GOAL_DELEGATED]    analysis_agent: Receives task from ingestion_agent
-...
-
-CAUSAL DAG RECONSTRUCTION
-Events: 16
-Causal edges: 12
-Agents: 4
-All reasoning paths captured: YES
-Tool invocation decisions logged: YES
-Failure modes detected: YES (if citation timeout occurred)
-```
-
-This shows SPECTRA's value: **complete visibility into what each agent thought and did**.
+Running Example 14 generates the data that powers all four tabs of the Streamlit GUI at `http://localhost:8501`.
 
 ---
 
-*For more information on SPECTRA, see the main [README.md](../README.md)*
+## What Is Captured vs Example 12
+
+| Aspect | Example 12 | Example 14 |
+|--------|-----------|-----------|
+| Agent execution | ✅ Legacy collector events | ✅ Legacy collector + Flowcept |
+| LLM call captured | No | ✅ FlowceptLLM wrapper |
+| Provenance model | SPECTRA semantic events | ✅ W3C PROV-AGENT |
+| wasInformedBy links | No | ✅ AgentTool → LLM invocation |
+| GUI support | No | ✅ 4-tab Streamlit |
+| Output files | HTML/Mermaid/dot/md | + JSONL buffer + PROV-AGENT JSON |
+
+---
+
+## Pipeline Architecture
+
+```
+Input: papers/paper.pdf
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  @flowcept  ←── wraps run_pipeline() as a Workflow record       │
+│                                                                  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ @agent_flowcept_task  run_ingestion                        │  │
+│  │   FlowceptLLM(OllamaLLM)  ──wasInformedBy──▶ llm_task    │  │
+│  │   ingest_paper(file_path=...)                              │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│          │                                                       │
+│          ▼                                                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ @agent_flowcept_task  run_analysis                         │  │
+│  │   FlowceptLLM(OllamaLLM)  ──wasInformedBy──▶ llm_task    │  │
+│  │   extract_findings(paper=<injected>)                       │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│          │                                                       │
+│          ▼                                                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ @agent_flowcept_task  run_citation                         │  │
+│  │   FlowceptLLM(OllamaLLM)  ──wasInformedBy──▶ llm_task    │  │
+│  │   validate_citations(paper=<injected>)                     │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│          │                                                       │
+│          ▼                                                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ @agent_flowcept_task  run_synthesis                        │  │
+│  │   FlowceptLLM(OllamaLLM)  ──wasInformedBy──▶ llm_task    │  │
+│  │   synthesize(findings, citations, relationships)           │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+          │
+          ▼
+Output: prov_agent_research_paper.json
+        flowcept_buffer.jsonl
+        research_paper_prov_agent_interactive.html
+```
+
+---
+
+## PROV-AGENT Instrumentation
+
+### The three key components
+
+**`@agent_flowcept_task`** (from `flowcept.instrumentation.flowcept_agent_task`)
+
+Applied to each node function. Creates one `agent_task` record per call with:
+- `activity_id`: the function name (e.g. `run_ingestion`)
+- `agent_id`: the standalone UUID set at startup via `BaseAgentContextManager.agent_id`
+- `used`: the function's input arguments
+- `generated`: the function's return value
+- `status`: `FINISHED` or `FAILED`
+- `started_at` / `ended_at`: Unix timestamps
+
+**`FlowceptLLM(base_llm, agent_id=..., parent_task_id=..., workflow_id=...)`**
+
+Wraps the `OllamaLLM` (Mistral) instance inside each node. Creates one `llm_task` record per `.invoke()` call with:
+- `parent_task_id`: the `task_id` of the enclosing `agent_task` — this is the `wasInformedBy` link
+- `used.prompt`: the prompt string sent to Mistral
+- `generated.response`: Mistral's response text
+- `custom_metadata.class_name`: the LLM class name (e.g. `OllamaLLM`)
+
+**`get_current_context_task()`**
+
+Called inside each node to retrieve the live `TaskObject` created by `@agent_flowcept_task`. This is how `FlowceptLLM` reads the correct `task_id` and `agent_id` without manual bookkeeping.
+
+### Wiring pattern
+
+```python
+from flowcept.instrumentation.flowcept_agent_task import (
+    agent_flowcept_task,
+    FlowceptLLM,
+    get_current_context_task,
+)
+
+def _make_flowcept_llm(base_llm):
+    current_task = get_current_context_task()
+    return FlowceptLLM(
+        base_llm,
+        agent_id=current_task.agent_id if current_task else STANDALONE_AGENT_ID,
+        parent_task_id=current_task.task_id if current_task else None,
+        workflow_id=current_task.workflow_id if current_task else Flowcept.current_workflow_id,
+    )
+
+@agent_flowcept_task
+def run_ingestion(state: dict, agent: MistralAgent) -> dict:
+    if hasattr(agent, 'llm'):
+        agent.llm = _make_flowcept_llm(agent.llm)   # ← wrap before reasoning
+    state = agent.reason_and_act(state, "Extract metadata from the PDF")
+    paper = ingest_paper(file_path=state.get("paper_path"))
+    ...
+```
+
+The same pattern repeats for `run_analysis`, `run_citation`, and `run_synthesis`.
+
+---
+
+## Running Example 14
+
+```bash
+# Standard run with the bundled paper
+docker exec spectra-app python examples/14_prov_research_paper_analysis.py papers/paper.pdf
+
+# Analyse your own PDF
+docker cp your_paper.pdf spectra-app:/app/papers/
+docker exec spectra-app python examples/14_prov_research_paper_analysis.py papers/your_paper.pdf
+```
+
+### Expected console output
+
+```
+====================================================================================================
+EXAMPLE 13: Research Paper Analysis — PROV-AGENT Edition
+====================================================================================================
+
+Standalone agent_id : fd693d95-4127-4159-9c0f-f80671340a7e
+Paper               : papers/paper.pdf
+
+Building workflow...
+  ✅ agent_flowcept_task available
+  ✅ FlowceptLLM available
+
+Running analysis...
+  ✅ Workflow completed
+
+────────────────────────────────────────────────────────────────
+PROV-AGENT PROVENANCE SUMMARY
+────────────────────────────────────────────────────────────────
+  Total records     : 8
+  AgentTool records : 4  (subtype='agent_task')
+  LLM invocations   : 4  (subtype='llm_task')
+  Other tasks       : 0
+
+  AgentTool records:
+    [run_ingestion]  agent_id=fd693d95...  status=FINISHED  duration=1.879s
+    [run_analysis]   agent_id=fd693d95...  status=FINISHED  duration=0.026s
+    [run_citation]   agent_id=fd693d95...  status=FINISHED  duration=0.018s
+    [run_synthesis]  agent_id=fd693d95...  status=FINISHED  duration=0.015s
+
+  AIModelInvocation records (linked via parent_task_id → wasInformedBy):
+    [llm_interaction]  parent=...  model=OllamaLLM  prompt="You are ingestion_agent..."
+    [llm_interaction]  parent=...  model=OllamaLLM  prompt="You are analysis_agent..."
+    [llm_interaction]  parent=...  model=OllamaLLM  prompt="You are citation_agent..."
+    [llm_interaction]  parent=...  model=OllamaLLM  prompt="You are synthesis_agent..."
+────────────────────────────────────────────────────────────────
+```
+
+---
+
+## Output Files
+
+| File | Location | Description |
+|------|----------|-------------|
+| `flowcept_buffer.jsonl` | `/app/` | Raw Flowcept events, one JSON object per line. Primary GUI data source. |
+| `prov_agent_research_paper.json` | `/app/` | Grouped PROV-AGENT export: `agent_tasks`, `llm_tasks`, `other_tasks` arrays plus a metadata header. |
+| `research_paper_prov_agent_interactive.html` | `/app/` | Standalone interactive DAG (legacy SPECTRA visualiser). |
+| `research_paper_prov_agent.dot` | `/app/` | Graphviz source. Render: `dot -Tpng file.dot -o file.png` |
+| `research_paper_prov_agent_visualization.md` | `/app/` | Mermaid diagram source. |
+| `research_paper_prov_agent_summary.md` | `/app/` | Tabular summary of events and edges. |
+
+> **Note on the JSON export:** `prov_agent_research_paper.json` is written for offline inspection and is not read by any GUI tab. All four GUI tabs source their data exclusively from `flowcept_buffer.jsonl`.
+
+---
+
+## Understanding the GUI
+
+### Tab 1 — Provenance Graph
+
+This is the main PROV-AGENT view. After a successful Example 14 run you should see:
+
+- One large dark-blue **Workflow** node at the centre
+- Four medium blue **AgentTool** nodes (run_ingestion, run_analysis, run_citation, run_synthesis), connected to the Workflow by grey `hadMember` edges
+- Four small green **AIModelInvocation** nodes (one per OllamaLLM call), each connected to its parent AgentTool by a green `wasInformedBy` edge
+- Sequential green `wasInformedBy` edges chaining the AgentTool nodes in execution order
+
+Hover any node to see its full metadata in the tooltip. The tooltip for an AgentTool shows `Agent ID`, `Status`, `Duration`, `Inputs`, and `Outputs`. The tooltip for an AIModelInvocation shows `Model`, `Duration`, `Prompt` (truncated to 80 chars), and `Response` (truncated to 80 chars).
+
+**What a healthy graph looks like:**
+
+```
+Workflow ──hadMember──▶ run_ingestion ──wasInformedBy──▶ LLM [OllamaLLM]
+                               │
+                        wasInformedBy
+                               │
+                               ▼
+                         run_analysis ──wasInformedBy──▶ LLM [OllamaLLM]
+                               │
+                        wasInformedBy
+                               │
+                               ▼
+                         run_citation ──wasInformedBy──▶ LLM [OllamaLLM]
+                               │
+                        wasInformedBy
+                               │
+                               ▼
+                        run_synthesis ──wasInformedBy──▶ LLM [OllamaLLM]
+```
+
+**Diagnosing a disconnected LLM node:**
+
+If a green node appears floating with no edge, `parent_task_id` was not set. This means `_make_flowcept_llm()` was called outside an active `@agent_flowcept_task` context (i.e. `get_current_context_task()` returned `None`). Check that the LLM wrapper is created *inside* the decorated function, not before the decorator fires.
+
+### Tab 2 — Causal DAG
+
+Shows the legacy SPECTRA causal DAG reconstructed from the event collector. This view is complementary to Tab 1: Tab 1 shows the PROV-AGENT provenance graph (what Flowcept captured), while Tab 2 shows the SPECTRA causal reconstruction (what the semantic event collector captured).
+
+You will see `GOAL_FAILED` nodes in the DAG even when all four `agent_task` records show `FINISHED` in Tab 1. This is expected: the legacy collector fires a `GOAL_FAILED` event when any intermediate LLM reasoning step does not produce a clean tool invocation, while the Flowcept `@agent_flowcept_task` decorator records the overall function outcome, which succeeds via a direct fallback path.
+
+### Tab 3 — Hallucination Report
+
+Confidence scores for all four agent tools are displayed. With Mistral via OllamaLLM, confidence is not directly exposed by the model API, so the default value of 0.8 is used unless your `MistralAgent` sets it explicitly in `custom_metadata`. To get real confidence values you would need a model endpoint that returns logprobs and propagate them through the agent's return value into the Flowcept record.
+
+The hallucination detector flags events with confidence below configured thresholds. At the default 0.8, you may see MEDIUM or LOW risk flags depending on the detector's threshold configuration.
+
+### Tab 4 — Provenance Chat
+
+The DataFrame shown at the top of this tab contains all 8 records from `flowcept_buffer.jsonl` in a flat tabular format. Useful columns to examine:
+
+| Column | What it tells you |
+|--------|------------------|
+| `subtype` | `agent_task` or `llm_task` |
+| `activity_id` | Function name (`run_ingestion`, `llm_interaction`, etc.) |
+| `agent_id` | The standalone UUID set at startup |
+| `parent_task_id` | For `llm_task` records: the `task_id` of the enclosing `agent_task` — the wasInformedBy link |
+| `duration_s` | Elapsed seconds |
+| `used` | JSON of inputs |
+| `generated` | JSON of outputs |
+| `custom_metadata` | LLM class name and other metadata |
+
+---
+
+## Agents
+
+### run_ingestion
+
+Extracts paper metadata from the PDF. Uses `ingest_paper(file_path)` after Mistral reasons about the goal. This is typically the slowest step (~1–2 seconds) because `ingest_paper` reads and parses the PDF.
+
+### run_analysis
+
+Identifies key findings. Uses `extract_findings(paper)` with the paper object injected from pipeline state. Mistral reasons about what analysis to perform.
+
+### run_citation
+
+Validates citations and maps citation relationships. Uses `validate_citations(paper)`. Note that in the current implementation, citation validation produces results even when the legacy collector records a `GOAL_FAILED`, because the tool has a direct return path in the pipeline state.
+
+### run_synthesis
+
+Compiles the final report. Uses `synthesize(findings, citations, relationships)` with all upstream results injected from state. Produces the synthesis string shown in the RESULTS section of the console output.
+
+---
+
+## Extending Example 14
+
+### Add a new agent stage
+
+1. Write a new node function decorated with `@agent_flowcept_task`
+2. Inside it, call `_make_flowcept_llm(agent.llm)` before `agent.reason_and_act()`
+3. Add the node to the LangGraph `StateGraph` with `.add_node()` and `.add_edge()`
+
+```python
+@agent_flowcept_task
+def run_impact(state: dict, agent: MistralAgent) -> dict:
+    if hasattr(agent, 'llm'):
+        agent.llm = _make_flowcept_llm(agent.llm)
+    state = agent.reason_and_act(state, "Assess the paper's research impact")
+    state["impact"] = assess_impact(state.get("paper"))
+    return state
+```
+
+### Expose real LLM confidence
+
+If your Ollama setup supports logprobs, extract them from the LLM response and set them on the Flowcept task:
+
+```python
+@agent_flowcept_task
+def run_analysis(state: dict, agent: MistralAgent) -> dict:
+    current_task = get_current_context_task()
+    ...
+    response = llm.invoke(prompt)
+    if current_task and hasattr(response, 'response_metadata'):
+        current_task.custom_metadata = current_task.custom_metadata or {}
+        current_task.custom_metadata['confidence'] = response.response_metadata.get('logprob_score', 0.8)
+    ...
+```
+
+This value will then appear in the Tab 3 confidence gradient table.
+
+### Use a different model
+
+Change `OLLAMA_MODEL` in `docker-compose.yml` and pull the new model:
+
+```bash
+# Edit docker-compose.yml: OLLAMA_MODEL: llama3
+docker exec spectra-app ollama pull llama3
+docker-compose restart app
+```
+
+---
+
+## Troubleshooting
+
+### "No provenance records found" in the GUI
+
+The GUI is looking for `flowcept_buffer.jsonl` relative to its working directory. Always launch Streamlit with `cd /app` first:
+
+```bash
+docker exec spectra-app bash -c \
+  "cd /app && streamlit run visualization/prov_agent_gui.py --server.port 8501 --server.address 0.0.0.0"
+```
+
+Or update the **Flowcept JSONL buffer** path in the sidebar to the full absolute path `/app/flowcept_buffer.jsonl`.
+
+### "ModuleNotFoundError: No module named 'reconstruction'"
+
+Add `sys.path.insert(0, '/app')` at the top of `prov_agent_gui.py`, immediately after the docstring and before any project imports.
+
+### LLM nodes appear disconnected in Tab 1
+
+`parent_task_id` was not set on the `llm_task` record. Confirm that `_make_flowcept_llm()` is called *inside* the `@agent_flowcept_task`-decorated function body, and that `get_current_context_task()` returns a non-None value at that point.
+
+### All agent durations are near zero except run_ingestion
+
+This is normal. `run_ingestion` is slow because it reads the PDF. The analysis, citation, and synthesis nodes complete quickly because their tools operate on in-memory Python objects (the paper dict) rather than I/O.
+
+### GOAL_FAILED events appear in Tab 2 but Tab 1 shows all FINISHED
+
+This is expected. The legacy SPECTRA event collector and the Flowcept `@agent_flowcept_task` decorator observe the workflow at different levels. The decorator wraps the entire node function (which has a direct fallback path), while the legacy collector fires events based on LLM reasoning steps that may not cleanly resolve to a single tool call.

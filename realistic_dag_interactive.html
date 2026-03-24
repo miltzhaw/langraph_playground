@@ -2,472 +2,238 @@
 <html>
 <head>
     <title>SPECTRA - Causal DAG Visualization</title>
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <style type="text/css">
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        /* Fixed body to prevent double scrollbars */
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);height:100vh;padding:20px;overflow:hidden}
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+        /* Container fits the viewport */
+        .container{max-width:1600px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;height:100%;display:flex;flex-direction:column}
+        
+        .header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:20px 30px;text-align:center;flex-shrink:0}
+        .header h1{font-size:24px;margin-bottom:6px}
+        .header p{font-size:13px;opacity:.85}
+
+        /* Content area takes remaining height and defines fixed columns */
+        .content{
+            display:grid;
+            grid-template-columns:280px 1fr 300px;
+            gap:16px;
+            padding:16px;
+            flex-grow:1;
+            overflow:hidden; /* Prevents the central area from expanding past the screen */
+            height: calc(100% - 80px); /* Adjusts for header height */
         }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+
+        /* Sidebars have independent scrolling */
+        .sidebar,.right-sidebar{
+            background:#f8f9fa;
+            border-radius:8px;
+            padding:16px;
+            overflow-y:auto;
+            border:1px solid #e0e0e0;
+            font-size:12px;
+            height: 100%; 
         }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+
+        .sidebar h3,.right-sidebar h3{color:#444;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #667eea;padding-bottom:8px;margin-bottom:12px}
+        .stat-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}
+        .stat-label{color:#666}.stat-value{color:#667eea;font-weight:bold}
+        .agent-badge{display:inline-block;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:600;margin:2px 0}
+        .ag-ingestion{background:#e3f2fd;color:#1565c0}.ag-analysis{background:#f3e5f5;color:#6a1b9a}
+        .ag-citation{background:#e8f5e9;color:#2e7d32}.ag-synthesis{background:#fff3e0;color:#e65100}
+        .legend-item{display:flex;align-items:center;margin-bottom:8px;font-size:11px}
+        .lc{width:16px;height:16px;border-radius:3px;margin-right:8px;border:1px solid #bbb;flex-shrink:0}
+        .ll{width:26px;height:3px;margin-right:8px;flex-shrink:0;border-radius:2px}
+
+        /* Diagram wrapper and network - Fixed Height */
+        .net-wrap{position:relative;height:100%;min-height:0}
+        #network{
+            height:100%;
+            width:100%;
+            border:1px solid #ddd;
+            border-radius:8px;
+            background:#fafafa;
         }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            display: grid;
-            grid-template-columns: 300px 1fr 300px;
-            gap: 20px;
-            padding: 20px;
-            height: calc(100vh - 200px);
-        }
-        
-        .sidebar {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .sidebar h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 14px;
-            text-transform: uppercase;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .stat-group {
-            margin-bottom: 20px;
-        }
-        
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 13px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-weight: 500;
-        }
-        
-        .stat-value {
-            color: #667eea;
-            font-weight: bold;
-        }
-        
-        .legend {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-            border: 1px solid #ddd;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 12px;
-        }
-        
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-            margin-right: 8px;
-            border: 1px solid #999;
-        }
-        
-        #network {
-            height: 75vh;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background: white;
-            position: relative;
-        }
-        
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: white;
-            padding: 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        button {
-            padding: 8px 12px;
-            background-color: #667eea;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        
-        button:hover {
-            background-color: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .right-sidebar {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .event-list {
-            font-size: 12px;
-        }
-        
-        .event-item {
-            background: white;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            border-left: 3px solid #667eea;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .event-item:hover {
-            background: #f0f0f0;
-            transform: translateX(3px);
-        }
-        
-        .event-type {
-            font-weight: bold;
-            color: #667eea;
-            font-size: 11px;
-        }
-        
-        .event-agent {
-            color: #666;
-            font-size: 11px;
-            margin-top: 3px;
-        }
-        
-        .info-panel {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-size: 12px;
-        }
-        
-        .info-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 8px;
-        }
-        
-        .info-detail {
-            color: #666;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-        
-        @media (max-width: 1200px) {
-            .content {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-            
-            .sidebar, .right-sidebar {
-                display: none;
-            }
+
+        .controls{position:absolute;bottom:12px;left:12px;background:white;padding:10px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.12);display:flex;gap:6px;z-index:100}
+        button{padding:6px 10px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;transition:all .2s}
+        button:hover{background:#764ba2;transform:translateY(-1px)}
+        .callout{background:#fffde7;border-left:3px solid #f9a825;padding:8px 10px;border-radius:0 4px 4px 0;margin-bottom:10px;font-size:11px;color:#555;line-height:1.5}
+        .callout strong{color:#e65100}
+        .event-item{background:white;padding:8px 10px;margin-bottom:6px;border-radius:4px;border-left:3px solid #667eea;cursor:pointer;transition:all .15s}
+        .event-item:hover{background:#f0f0f0;transform:translateX(2px)}
+        .event-item.selected{border-left-color:#e65100;background:#fff8f5}
+        .event-type{font-weight:bold;color:#667eea;font-size:10px}
+        .event-ts{color:#bbb;font-size:10px;float:right}
+        .info-panel{background:white;padding:12px;border-radius:6px;border:1px solid #ddd;margin-top:12px;font-size:11px;max-height:280px;overflow-y:auto}
+        .info-panel pre{background:#f5f5f5;padding:8px;border-radius:4px;white-space:pre-wrap;word-break:break-all;font-size:10px;margin-top:6px}
+        .gap-warning{background:#fce4ec;border:1px solid #f48fb1;border-radius:4px;padding:6px 8px;font-size:10px;color:#880e4f;margin:6px 0}
+        @media(max-width:1100px){
+            body{overflow:auto;height:auto}
+            .container{height:auto}
+            .content{grid-template-columns:1fr;height:auto}
+            .sidebar,.right-sidebar{display:none}
+            .net-wrap{height:600px}
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 SPECTRA - Semantic Causal DAG Visualization</h1>
-            <p>Interactive exploration of multi-agent reasoning and coordination</p>
-        </div>
-        
-        <div class="content">
-            <!-- Left Sidebar: Statistics -->
-            <div class="sidebar">
-                <h3>📊 Execution Summary</h3>
-                <div class="stat-group">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Events:</span>
-                        <span class="stat-value">17</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Causal Edges:</span>
-                        <span class="stat-value">13</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Agents:</span>
-                        <span class="stat-value">4</span>
-                    </div>
-                </div>
-                
-                <h3>📈 Event Types</h3>
-                <div class="stat-group">
-                    <div class="stat-item"><span class="stat-label">GOAL_COMPLETED:</span><span class="stat-value">2</span></div><div class="stat-item"><span class="stat-label">GOAL_CREATED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">GOAL_FAILED:</span><span class="stat-value">2</span></div><div class="stat-item"><span class="stat-label">REASONING_STEP:</span><span class="stat-value">6</span></div><div class="stat-item"><span class="stat-label">TOOL_INVOKED:</span><span class="stat-value">3</span></div>
-                </div>
-                
-                <div class="legend">
-                    <strong style="font-size: 12px;">Event Type Colors</strong>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #E8F4F8;"></div>
-                        <span>Reasoning Step</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #C8E6C9;"></div>
-                        <span>Goal Created</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FFE0B2;"></div>
-                        <span>Goal Delegated</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #F8BBD0;"></div>
-                        <span>Tool Invoked</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #FFCDD2;"></div>
-                        <span>Goal Failed</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background-color: #B2DFDB;"></div>
-                        <span>Goal Completed</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Center: Network Visualization -->
-            <div style="position: relative;">
-                <div id="network"></div>
-                <div class="controls">
-                    <button onclick="zoomIn()">🔍+ Zoom In</button>
-                    <button onclick="zoomOut()">🔍- Zoom Out</button>
-                    <button onclick="fitToScreen()">📐 Fit</button>
-                    <button onclick="resetPhysics()">🔄 Reset</button>
-                    <button onclick="downloadPNG()">💾 PNG</button>
-                </div>
-            </div>
-            
-            <!-- Right Sidebar: Events and Details -->
-            <div class="right-sidebar">
-                <h3>📋 Event Timeline</h3>
-                <div class="event-list" id="eventList"></div>
-                
-                <div class="info-panel">
-                    <div class="info-title">ℹ️ Selected Event Details</div>
-                    <div class="info-detail" id="eventInfo">
-                        Click an event node to see details
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🔍 SPECTRA — Semantic Causal DAG</h1>
+        <p>Multi-Agent Reasoning Pipeline &nbsp;·&nbsp; 4 agents &nbsp;·&nbsp; 12 events &nbsp;·&nbsp; 8 causal edges &nbsp;·&nbsp; 4 failures</p>
     </div>
+    <div class="content">
 
-    <script type="text/javascript">
-        var nodes = new vis.DataSet([{"id": "653becc9-6f4d-42d4-beb7-8c242d89d380", "label": "GOAL_CREATED\ncoordinator\n(653bec)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"role\": \"orchestrator\",\n  \"tools_available\": [],\n  \"timestamp\": 1772540350.2613559\n}", "font": {"size": 12}}, {"id": "63f45d08-daf4-4c00-b927-8ebf0b385abb", "label": "REASONING_STEP\ncoordinator\n(63f45d)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "53da97bc-5fe7-46ff-ae35-f320d3877696", "label": "GOAL_FAILED\ncoordinator\n(53da97)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_not_found\",\n  \"requested_tool\": \"search_documents\",\n  \"available_tools\": []\n}", "font": {"size": 12}}, {"id": "3e580148-7582-4d67-90ae-737bff114339", "label": "GOAL_CREATED\nanalyzer\n(3e5801)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"role\": \"content_analyzer\",\n  \"tools_available\": [\n    \"search_documents\"\n  ],\n  \"timestamp\": 1772540368.818392\n}", "font": {"size": 12}}, {"id": "a16b8784-f832-4e68-9e89-13ee1b873d0f", "label": "REASONING_STEP\nanalyzer\n(a16b87)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"available_tools\": [\n    \"search_documents\"\n  ]\n}", "font": {"size": 12}}, {"id": "b39cf9f0-1227-4077-af48-62da61a324be", "label": "TOOL_INVOKED\nanalyzer\n(b39cf9)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"search_documents\",\n  \"params\": {\n    \"query\": \"machine learning\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: search_documents\\nPARAM_query: machine learning\"\n}", "font": {"size": 12}}, {"id": "762f7395-25dc-4221-99f0-1004010b7a26", "label": "REASONING_STEP\nanalyzer\n(762f73)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"search_documents\",\n  \"result_length\": 193\n}", "font": {"size": 12}}, {"id": "65d79efb-3b17-4a2a-b64d-66c9c034275f", "label": "GOAL_COMPLETED\nanalyzer\n(65d79e)", "color": "#C8E6C9", "title": "{\n  \"result\": \"[{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"tool_used\": \"search_documents\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "c6034106-04dc-4bd6-8e30-8a7ba3b2b222", "label": "GOAL_CREATED\nsummarizer\n(c60341)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"role\": \"summarization_specialist\",\n  \"tools_available\": [\n    \"summarize_content\"\n  ],\n  \"timestamp\": 1772540386.1295724\n}", "font": {"size": 12}}, {"id": "c957316e-a641-439e-8d7c-b2fe4af16f8d", "label": "REASONING_STEP\nsummarizer\n(c95731)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Create a concise summary of: [{\\\"id\\\": \\\"doc_001\\\", \\\"title\\\": \\\"ML Basics\\\", \\\"summary\\\": \\\"Introduction to machine learning concepts\\\"}, {\\\"\",\n  \"available_tools\": [\n    \"summarize_content\"\n  ]\n}", "font": {"size": 12}}, {"id": "eaca5204-7d2b-449f-ac40-bd6a330f6a8a", "label": "TOOL_INVOKED\nsummarizer\n(eaca52)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"summarize_content\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: summarize_content\\nPARAM_content: Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)\"\n}", "font": {"size": 12}}, {"id": "530af989-4bfc-40f7-9d98-dd5c4d95adba", "label": "REASONING_STEP\nsummarizer\n(530af9)", "color": "#E8F4F8", "title": "{\n  \"step\": \"process_tool_result\",\n  \"tool\": \"summarize_content\",\n  \"result_length\": 156\n}", "font": {"size": 12}}, {"id": "bc47a16c-793d-41f8-8621-e6fff95e67e1", "label": "GOAL_COMPLETED\nsummarizer\n(bc47a1)", "color": "#C8E6C9", "title": "{\n  \"result\": \"{\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"tool_used\": \"summarize_content\",\n  \"status\": \"success\"\n}", "font": {"size": 12}}, {"id": "f23ed6de-7d14-49ae-beb2-a41c7edaec1e", "label": "GOAL_CREATED\nclassifier\n(f23ed6)", "color": "#C8E6C9", "title": "{\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"role\": \"document_classifier\",\n  \"tools_available\": [\n    \"classify_document\"\n  ],\n  \"timestamp\": 1772540411.6057742\n}", "font": {"size": 12}}, {"id": "c0a79051-218a-40b2-b590-73ee9dfaa8f4", "label": "REASONING_STEP\nclassifier\n(c0a790)", "color": "#E8F4F8", "title": "{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Classify this content: {\\\"original_length\\\": 93, \\\"summary\\\": \\\"Introduction to machine learning concepts (from document with id\",\n  \"available_tools\": [\n    \"classify_document\"\n  ]\n}", "font": {"size": 12}}, {"id": "d430b755-4b13-4219-8432-8c582b2eb4dd", "label": "TOOL_INVOKED\nclassifier\n(d430b7)", "color": "#F8BBD0", "title": "{\n  \"tool\": \"classify_document\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"reasoning_snippet\": \"TOOL_NAME: classify_document\\nPARAM_content: Introduction to machine learning concepts (from document with id\\n\\nThis indicates that the document is rela\"\n}", "font": {"size": 12}}, {"id": "be0ff2cd-2ff7-46c7-809c-4a65f57b2cb5", "label": "GOAL_FAILED\nclassifier\n(be0ff2)", "color": "#FFCDD2", "title": "{\n  \"reason\": \"tool_execution_error\",\n  \"tool\": \"classify_document\",\n  \"error\": \"1 validation error for classify_document\\ntext\\n  Field required [type=missing, input_value={'content': 'Introduction...(from document with id'}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\",\n  \"params\": {\n    \"content\": \"Introduction to machine learning concepts (from document with id\"\n  },\n  \"status\": \"failed\"\n}", "font": {"size": 12}}]);
-        var edges = new vis.DataSet([{"from": "762f7395-25dc-4221-99f0-1004010b7a26", "to": "65d79efb-3b17-4a2a-b64d-66c9c034275f", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "653becc9-6f4d-42d4-beb7-8c242d89d380", "to": "63f45d08-daf4-4c00-b927-8ebf0b385abb", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "f23ed6de-7d14-49ae-beb2-a41c7edaec1e", "to": "c0a79051-218a-40b2-b590-73ee9dfaa8f4", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "c957316e-a641-439e-8d7c-b2fe4af16f8d", "to": "eaca5204-7d2b-449f-ac40-bd6a330f6a8a", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "a16b8784-f832-4e68-9e89-13ee1b873d0f", "to": "b39cf9f0-1227-4077-af48-62da61a324be", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "3e580148-7582-4d67-90ae-737bff114339", "to": "a16b8784-f832-4e68-9e89-13ee1b873d0f", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "d430b755-4b13-4219-8432-8c582b2eb4dd", "to": "be0ff2cd-2ff7-46c7-809c-4a65f57b2cb5", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "eaca5204-7d2b-449f-ac40-bd6a330f6a8a", "to": "530af989-4bfc-40f7-9d98-dd5c4d95adba", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "c6034106-04dc-4bd6-8e30-8a7ba3b2b222", "to": "c957316e-a641-439e-8d7c-b2fe4af16f8d", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "63f45d08-daf4-4c00-b927-8ebf0b385abb", "to": "53da97bc-5fe7-46ff-ae35-f320d3877696", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "c0a79051-218a-40b2-b590-73ee9dfaa8f4", "to": "d430b755-4b13-4219-8432-8c582b2eb4dd", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}, {"from": "b39cf9f0-1227-4077-af48-62da61a324be", "to": "762f7395-25dc-4221-99f0-1004010b7a26", "label": "inferred_by_proximity", "color": "#95E1D3", "arrows": "to", "font": {"size": 10}}, {"from": "530af989-4bfc-40f7-9d98-dd5c4d95adba", "to": "bc47a16c-793d-41f8-8621-e6fff95e67e1", "label": "intra_agent_sequence", "color": "#4ECDC4", "arrows": "to", "font": {"size": 10}}]);
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <h3>📊 Execution Summary</h3>
+            <div class="stat-item"><span class="stat-label">Total Events</span><span class="stat-value">12</span></div>
+            <div class="stat-item"><span class="stat-label">Causal Edges</span><span class="stat-value">8</span></div>
+            <div class="stat-item"><span class="stat-label">Agents</span><span class="stat-value">4</span></div>
+            <div class="stat-item"><span class="stat-label">Failures</span><span class="stat-value" style="color:#e53935">4</span></div>
+            <div class="stat-item"><span class="stat-label">Tool Invocations</span><span class="stat-value">0</span></div>
 
-        var container = document.getElementById('network');
-        var data = {
-            nodes: nodes,
-            edges: edges
-        };
+            <h3 style="margin-top:14px">📈 Event Types</h3>
+            <div class="stat-item"><span class="stat-label">GOAL_CREATED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">GOAL_FAILED:</span><span class="stat-value">4</span></div><div class="stat-item"><span class="stat-label">REASONING_STEP:</span><span class="stat-value">4</span></div>
 
-        var options = {
-            physics: {
-                enabled: true,
-                stabilization: {
-                    iterations: 200,
-                    fit: true
-                },
-                barnesHut: {
-                    gravitationalConstant: -26000,
-                    centralGravity: 0.3,
-                    springLength: 200
-                }
-            },
-            nodes: {
-                font: {
-                    size: 13,
-                    color: '#333',
-                    face: 'Segoe UI'
-                },
-                borderWidth: 2,
-                borderWidthSelected: 4,
-                shadow: {
-                    enabled: true,
-                    color: 'rgba(0,0,0,0.2)',
-                    size: 10,
-                    x: 5,
-                    y: 5
-                }
-            },
-            edges: {
-                smooth: {
-                    type: 'continuous',
-                    roundness: 0.5
-                },
-                arrows: {
-                    to: {
-                        enabled: true,
-                        scaleFactor: 1.3,
-                        type: 'arrow'
-                    }
-                },
-                color: {
-                    color: '#aaa',
-                    highlight: '#667eea',
-                    opacity: 0.6
-                },
-                width: 2,
-                font: {
-                    size: 11,
-                    color: '#666',
-                    background: {
-                        enabled: true,
-                        color: 'white'
-                    }
-                },
-                shadow: {
-                    enabled: true,
-                    color: 'rgba(0,0,0,0.1)',
-                    size: 5,
-                    x: 3,
-                    y: 3
-                }
-            }
-        };
+            <h3 style="margin-top:14px">🎨 Legend</h3>
+            <div class="legend-item"><div class="lc" style="background:#C8E6C9"></div>GOAL_CREATED / COMPLETED</div>
+            <div class="legend-item"><div class="lc" style="background:#E8F4F8"></div>REASONING_STEP</div>
+            <div class="legend-item"><div class="lc" style="background:#F8BBD0"></div>TOOL_INVOKED</div>
+            <div class="legend-item"><div class="lc" style="background:#FFCDD2"></div>GOAL_FAILED</div>
+            <div class="legend-item"><div class="ll" style="background:#4ECDC4"></div>intra_agent_sequence</div>
+            <div class="legend-item"><div class="ll" style="background:#95E1D3"></div>inferred_by_proximity</div>
+            <div class="legend-item"><div style="width:26px;border-top:2px dashed #bbb;margin-right:8px"></div>pipeline handoff (implicit)</div>
+            <div class="legend-item"><div class="lc" style="background:#F8BBD0;border:3px dashed #e53935"></div>reasoning-execution gap</div>
 
-        var network = new vis.Network(container, data, options);
+            <h3 style="margin-top:14px">⏱️ LLM Latency</h3>
+            <div class="stat-item"><span class="stat-label">analyzer</span><span class="stat-value">~0s</span></div><div class="stat-item"><span class="stat-label">classifier</span><span class="stat-value">~0s</span></div><div class="stat-item"><span class="stat-label">coordinator</span><span class="stat-value">~0s</span></div><div class="stat-item"><span class="stat-label">summarizer</span><span class="stat-value">~0s</span></div>
+        </div>
 
-        // Event list
-        var events = [{"id": "653becc9", "type": "GOAL_CREATED", "agent": "coordinator"}, {"id": "63f45d08", "type": "REASONING_STEP", "agent": "coordinator"}, {"id": "53da97bc", "type": "GOAL_FAILED", "agent": "coordinator"}, {"id": "3e580148", "type": "GOAL_CREATED", "agent": "analyzer"}, {"id": "a16b8784", "type": "REASONING_STEP", "agent": "analyzer"}, {"id": "b39cf9f0", "type": "TOOL_INVOKED", "agent": "analyzer"}, {"id": "762f7395", "type": "REASONING_STEP", "agent": "analyzer"}, {"id": "65d79efb", "type": "GOAL_COMPLETED", "agent": "analyzer"}, {"id": "c6034106", "type": "GOAL_CREATED", "agent": "summarizer"}, {"id": "c957316e", "type": "REASONING_STEP", "agent": "summarizer"}, {"id": "eaca5204", "type": "TOOL_INVOKED", "agent": "summarizer"}, {"id": "530af989", "type": "REASONING_STEP", "agent": "summarizer"}, {"id": "bc47a16c", "type": "GOAL_COMPLETED", "agent": "summarizer"}, {"id": "f23ed6de", "type": "GOAL_CREATED", "agent": "classifier"}, {"id": "c0a79051", "type": "REASONING_STEP", "agent": "classifier"}, {"id": "d430b755", "type": "TOOL_INVOKED", "agent": "classifier"}, {"id": "be0ff2cd", "type": "GOAL_FAILED", "agent": "classifier"}];
-        var eventListHtml = events.map((e, i) => 
-            `<div class="event-item" onclick="selectEvent('${e.id}')">
-                <div class="event-type">${i+1}. ${e.type}</div>
-                <div class="event-agent">${e.agent}</div>
-            </div>`
-        ).join('');
-        document.getElementById('eventList').innerHTML = eventListHtml;
+        <!-- CENTRE -->
+        <div class="net-wrap">
+            <div id="network"></div>
+            <div class="controls">
+                <button onclick="zoomIn()">🔍+</button>
+                <button onclick="zoomOut()">🔍−</button>
+                <button onclick="fitToScreen()">📐 Fit</button>
+                <button onclick="resetPhysics()">🔄 Reset</button>
+                <button onclick="toggleHandoffs()">🔗 Handoffs</button>
+                <button onclick="downloadPNG()">💾 PNG</button>
+            </div>
+        </div>
 
-        function selectEvent(eventId) {
-            var allEvents = [{"event_id": "653becc9-6f4d-42d4-beb7-8c242d89d380", "event_type": "GOAL_CREATED", "agent_id": "coordinator", "timestamp": 1772540350.261363, "correlation_id": "realistic_viz_001", "payload": {"goal": "Coordinate analysis of document about machine learning", "role": "orchestrator", "tools_available": [], "timestamp": 1772540350.2613559}}, {"event_id": "63f45d08-daf4-4c00-b927-8ebf0b385abb", "event_type": "REASONING_STEP", "agent_id": "coordinator", "timestamp": 1772540350.261369, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Coordinate analysis of document about machine learning", "available_tools": []}}, {"event_id": "53da97bc-5fe7-46ff-ae35-f320d3877696", "event_type": "GOAL_FAILED", "agent_id": "coordinator", "timestamp": 1772540368.817768, "correlation_id": "realistic_viz_001", "payload": {"reason": "tool_not_found", "requested_tool": "search_documents", "available_tools": []}}, {"event_id": "3e580148-7582-4d67-90ae-737bff114339", "event_type": "GOAL_CREATED", "agent_id": "analyzer", "timestamp": 1772540368.818403, "correlation_id": "realistic_viz_001", "payload": {"goal": "Extract and search for information about machine learning", "role": "content_analyzer", "tools_available": ["search_documents"], "timestamp": 1772540368.818392}}, {"event_id": "a16b8784-f832-4e68-9e89-13ee1b873d0f", "event_type": "REASONING_STEP", "agent_id": "analyzer", "timestamp": 1772540368.818413, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Extract and search for information about machine learning", "available_tools": ["search_documents"]}}, {"event_id": "b39cf9f0-1227-4077-af48-62da61a324be", "event_type": "TOOL_INVOKED", "agent_id": "analyzer", "timestamp": 1772540386.12877, "correlation_id": "realistic_viz_001", "payload": {"tool": "search_documents", "params": {"query": "machine learning"}, "reasoning_snippet": "TOOL_NAME: search_documents\nPARAM_query: machine learning"}}, {"event_id": "762f7395-25dc-4221-99f0-1004010b7a26", "event_type": "REASONING_STEP", "agent_id": "analyzer", "timestamp": 1772540386.129219, "correlation_id": "realistic_viz_001", "payload": {"step": "process_tool_result", "tool": "search_documents", "result_length": 193}}, {"event_id": "65d79efb-3b17-4a2a-b64d-66c9c034275f", "event_type": "GOAL_COMPLETED", "agent_id": "analyzer", "timestamp": 1772540386.129225, "correlation_id": "realistic_viz_001", "payload": {"result": "[{\"id\": \"doc_001\", \"title\": \"ML Basics\", \"summary\": \"Introduction to machine learning concepts\"}, {\"", "tool_used": "search_documents", "status": "success"}}, {"event_id": "c6034106-04dc-4bd6-8e30-8a7ba3b2b222", "event_type": "GOAL_CREATED", "agent_id": "summarizer", "timestamp": 1772540386.129577, "correlation_id": "realistic_viz_001", "payload": {"goal": "Create a concise summary of: [{\"id\": \"doc_001\", \"title\": \"ML Basics\", \"summary\": \"Introduction to machine learning concepts\"}, {\"", "role": "summarization_specialist", "tools_available": ["summarize_content"], "timestamp": 1772540386.1295724}}, {"event_id": "c957316e-a641-439e-8d7c-b2fe4af16f8d", "event_type": "REASONING_STEP", "agent_id": "summarizer", "timestamp": 1772540386.129581, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Create a concise summary of: [{\"id\": \"doc_001\", \"title\": \"ML Basics\", \"summary\": \"Introduction to machine learning concepts\"}, {\"", "available_tools": ["summarize_content"]}}, {"event_id": "eaca5204-7d2b-449f-ac40-bd6a330f6a8a", "event_type": "TOOL_INVOKED", "agent_id": "summarizer", "timestamp": 1772540411.604951, "correlation_id": "realistic_viz_001", "payload": {"tool": "summarize_content", "params": {"content": "Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)"}, "reasoning_snippet": "TOOL_NAME: summarize_content\nPARAM_content: Introduction to machine learning concepts (from document with id doc_001 and title ML Basics)"}}, {"event_id": "530af989-4bfc-40f7-9d98-dd5c4d95adba", "event_type": "REASONING_STEP", "agent_id": "summarizer", "timestamp": 1772540411.605439, "correlation_id": "realistic_viz_001", "payload": {"step": "process_tool_result", "tool": "summarize_content", "result_length": 156}}, {"event_id": "bc47a16c-793d-41f8-8621-e6fff95e67e1", "event_type": "GOAL_COMPLETED", "agent_id": "summarizer", "timestamp": 1772540411.605445, "correlation_id": "realistic_viz_001", "payload": {"result": "{\"original_length\": 93, \"summary\": \"Introduction to machine learning concepts (from document with id", "tool_used": "summarize_content", "status": "success"}}, {"event_id": "f23ed6de-7d14-49ae-beb2-a41c7edaec1e", "event_type": "GOAL_CREATED", "agent_id": "classifier", "timestamp": 1772540411.605779, "correlation_id": "realistic_viz_001", "payload": {"goal": "Classify this content: {\"original_length\": 93, \"summary\": \"Introduction to machine learning concepts (from document with id", "role": "document_classifier", "tools_available": ["classify_document"], "timestamp": 1772540411.6057742}}, {"event_id": "c0a79051-218a-40b2-b590-73ee9dfaa8f4", "event_type": "REASONING_STEP", "agent_id": "classifier", "timestamp": 1772540411.605783, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Classify this content: {\"original_length\": 93, \"summary\": \"Introduction to machine learning concepts (from document with id", "available_tools": ["classify_document"]}}, {"event_id": "d430b755-4b13-4219-8432-8c582b2eb4dd", "event_type": "TOOL_INVOKED", "agent_id": "classifier", "timestamp": 1772540436.123917, "correlation_id": "realistic_viz_001", "payload": {"tool": "classify_document", "params": {"content": "Introduction to machine learning concepts (from document with id"}, "reasoning_snippet": "TOOL_NAME: classify_document\nPARAM_content: Introduction to machine learning concepts (from document with id\n\nThis indicates that the document is rela"}}, {"event_id": "be0ff2cd-2ff7-46c7-809c-4a65f57b2cb5", "event_type": "GOAL_FAILED", "agent_id": "classifier", "timestamp": 1772540436.124249, "correlation_id": "realistic_viz_001", "payload": {"reason": "tool_execution_error", "tool": "classify_document", "error": "1 validation error for classify_document\ntext\n  Field required [type=missing, input_value={'content': 'Introduction...(from document with id'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing", "params": {"content": "Introduction to machine learning concepts (from document with id"}, "status": "failed"}}];
-            var event = allEvents.find(e => e.event_id.startsWith(eventId));
-            if (event) {
-                var html = `
-                    <strong>${event.event_type}</strong><br>
-                    Agent: <strong>${event.agent_id}</strong><br>
-                    Time: ${event.timestamp.toFixed(3)}<br>
-                    <hr>
-                    <strong>Payload:</strong><br>
-                    <pre>${JSON.stringify(event.payload, null, 2).substring(0, 500)}</pre>
-                `;
-                document.getElementById('eventInfo').innerHTML = html;
-                nodes.update({id: event.event_id, borderWidth: 4});
-            }
-        }
+        <!-- RIGHT SIDEBAR -->
+        <div class="right-sidebar">
+            <h3>📋 Event Timeline</h3>
+            <div class="callout">
+                <strong>Observation:</strong> 4 isolated subgraphs — no cross-agent causal edges reconstructed. Toggle <b>🔗 Handoffs</b> to see implicit pipeline dependencies.
+            </div>
+            <div id="eventList"></div>
+            <div class="info-panel">
+                <div style="font-weight:bold;color:#333;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:8px">ℹ️ Selected Event</div>
+                <div id="eventInfo" style="color:#666;line-height:1.5">Click a node or event to inspect payload</div>
+            </div>
+        </div>
 
-        function zoomIn() {
-            var scale = network.getScale();
-            network.setOptions({ physics: false });
-            network.moveTo({ scale: scale * 1.2 });
-        }
+    </div>
+</div>
 
-        function zoomOut() {
-            var scale = network.getScale();
-            network.setOptions({ physics: false });
-            network.moveTo({ scale: scale / 1.2 });
-        }
+<script>
+var AGENT_CLASS = {
+    ingestion_agent:'ag-ingestion', analysis_agent:'ag-analysis',
+    citation_agent:'ag-citation',   synthesis_agent:'ag-synthesis'
+};
 
-        function fitToScreen() {
-            network.fit({ animation: true });
-        }
+var allEvents  = [{"event_id": "7c23317e-6d58-4853-a5aa-a3282883916e", "event_type": "GOAL_CREATED", "agent_id": "coordinator", "timestamp": 1773850627.243889, "correlation_id": "realistic_viz_001", "payload": {"goal": "Coordinate analysis of document about machine learning", "role": "orchestrator", "tools_available": [], "timestamp": 1773850627.243881}}, {"event_id": "d38d0295-ecb5-4de1-b9cb-cf9d8d92d8d0", "event_type": "REASONING_STEP", "agent_id": "coordinator", "timestamp": 1773850627.243896, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Coordinate analysis of document about machine learning", "available_tools": []}}, {"event_id": "26c1a715-b591-4fcb-b435-758106e0df94", "event_type": "GOAL_FAILED", "agent_id": "coordinator", "timestamp": 1773850627.26739, "correlation_id": "realistic_viz_001", "payload": {"reason": "llm_error", "error": "[Errno -3] Temporary failure in name resolution"}}, {"event_id": "cddae53b-e373-487a-8cb2-8b2053ac2f9d", "event_type": "GOAL_CREATED", "agent_id": "analyzer", "timestamp": 1773850627.268053, "correlation_id": "realistic_viz_001", "payload": {"goal": "Extract and search for information about machine learning", "role": "content_analyzer", "tools_available": ["search_documents"], "timestamp": 1773850627.2680407}}, {"event_id": "5e2397b2-2a6a-4778-a27e-f1689ef956f1", "event_type": "REASONING_STEP", "agent_id": "analyzer", "timestamp": 1773850627.268063, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Extract and search for information about machine learning", "available_tools": ["search_documents"]}}, {"event_id": "231cddf8-47d8-47b6-a61f-db019cd873dd", "event_type": "GOAL_FAILED", "agent_id": "analyzer", "timestamp": 1773850627.285189, "correlation_id": "realistic_viz_001", "payload": {"reason": "llm_error", "error": "[Errno -3] Temporary failure in name resolution"}}, {"event_id": "5fcf1bb8-3922-4655-ac1f-6ab2de9bc19a", "event_type": "GOAL_CREATED", "agent_id": "summarizer", "timestamp": 1773850627.286084, "correlation_id": "realistic_viz_001", "payload": {"goal": "Create a concise summary of: No content", "role": "summarization_specialist", "tools_available": ["summarize_content"], "timestamp": 1773850627.2860699}}, {"event_id": "43dbbd9e-9917-4d0b-ac5f-30b2d1effa86", "event_type": "REASONING_STEP", "agent_id": "summarizer", "timestamp": 1773850627.286099, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Create a concise summary of: No content", "available_tools": ["summarize_content"]}}, {"event_id": "b95e6749-85d9-4c71-9fb0-0c5a88d9870a", "event_type": "GOAL_FAILED", "agent_id": "summarizer", "timestamp": 1773850627.301299, "correlation_id": "realistic_viz_001", "payload": {"reason": "llm_error", "error": "[Errno -3] Temporary failure in name resolution"}}, {"event_id": "7cf8cfa3-a808-40f4-b3a7-a0aa5bc75adb", "event_type": "GOAL_CREATED", "agent_id": "classifier", "timestamp": 1773850627.302072, "correlation_id": "realistic_viz_001", "payload": {"goal": "Classify this content: machine learning content", "role": "document_classifier", "tools_available": ["classify_document"], "timestamp": 1773850627.3020604}}, {"event_id": "597d7e39-d538-4df3-a119-f93764d772fd", "event_type": "REASONING_STEP", "agent_id": "classifier", "timestamp": 1773850627.302089, "correlation_id": "realistic_viz_001", "payload": {"step": "analyze_goal", "goal": "Classify this content: machine learning content", "available_tools": ["classify_document"]}}, {"event_id": "a1e92a63-e906-435c-ad17-49c467b85d8b", "event_type": "GOAL_FAILED", "agent_id": "classifier", "timestamp": 1773850627.312951, "correlation_id": "realistic_viz_001", "payload": {"reason": "llm_error", "error": "[Errno -3] Temporary failure in name resolution"}}];
+var timelineData = [{"id": "7c23317e", "type": "GOAL_CREATED", "agent": "coordinator", "rel_ts": 0.0}, {"id": "d38d0295", "type": "REASONING_STEP", "agent": "coordinator", "rel_ts": 0.0}, {"id": "26c1a715", "type": "GOAL_FAILED", "agent": "coordinator", "rel_ts": 0.0}, {"id": "cddae53b", "type": "GOAL_CREATED", "agent": "analyzer", "rel_ts": 0.0}, {"id": "5e2397b2", "type": "REASONING_STEP", "agent": "analyzer", "rel_ts": 0.0}, {"id": "231cddf8", "type": "GOAL_FAILED", "agent": "analyzer", "rel_ts": 0.0}, {"id": "5fcf1bb8", "type": "GOAL_CREATED", "agent": "summarizer", "rel_ts": 0.0}, {"id": "43dbbd9e", "type": "REASONING_STEP", "agent": "summarizer", "rel_ts": 0.0}, {"id": "b95e6749", "type": "GOAL_FAILED", "agent": "summarizer", "rel_ts": 0.1}, {"id": "7cf8cfa3", "type": "GOAL_CREATED", "agent": "classifier", "rel_ts": 0.1}, {"id": "597d7e39", "type": "REASONING_STEP", "agent": "classifier", "rel_ts": 0.1}, {"id": "a1e92a63", "type": "GOAL_FAILED", "agent": "classifier", "rel_ts": 0.1}];
+var handoffEdges = [];
 
-        function resetPhysics() {
-            network.setOptions({ physics: { enabled: true } });
-            network.stabilize();
-        }
+var nodes = new vis.DataSet([{"id": "7c23317e-6d58-4853-a5aa-a3282883916e", "label": "GOAL\nCREATED\ncoordinator\n(7c2331)", "color": {"background": "#C8E6C9", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>coordinator</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"role\": \"orchestrator\",\n  \"tools_available\": [],\n  \"timestamp\": 1773850627.243881\n}</pre>"}, {"id": "d38d0295-ecb5-4de1-b9cb-cf9d8d92d8d0", "label": "REASONING\nSTEP\ncoordinator\n(d38d02)", "color": {"background": "#E8F4F8", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>coordinator</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Coordinate analysis of document about machine learning\",\n  \"available_tools\": []\n}</pre>"}, {"id": "26c1a715-b591-4fcb-b435-758106e0df94", "label": "GOAL\nFAILED\ncoordinator\n(26c1a7)", "color": {"background": "#FFCDD2", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_FAILED</b><br><small>coordinator</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"reason\": \"llm_error\",\n  \"error\": \"[Errno -3] Temporary failure in name resolution\"\n}</pre>"}, {"id": "cddae53b-e373-487a-8cb2-8b2053ac2f9d", "label": "GOAL\nCREATED\nanalyzer\n(cddae5)", "color": {"background": "#C8E6C9", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>analyzer</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"role\": \"content_analyzer\",\n  \"tools_available\": [\n    \"search_documents\"\n  ],\n  \"timestamp\": 1773850627.2680407\n}</pre>"}, {"id": "5e2397b2-2a6a-4778-a27e-f1689ef956f1", "label": "REASONING\nSTEP\nanalyzer\n(5e2397)", "color": {"background": "#E8F4F8", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>analyzer</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Extract and search for information about machine learning\",\n  \"available_tools\": [\n    \"search_documents\"\n  ]\n}</pre>"}, {"id": "231cddf8-47d8-47b6-a61f-db019cd873dd", "label": "GOAL\nFAILED\nanalyzer\n(231cdd)", "color": {"background": "#FFCDD2", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_FAILED</b><br><small>analyzer</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"reason\": \"llm_error\",\n  \"error\": \"[Errno -3] Temporary failure in name resolution\"\n}</pre>"}, {"id": "5fcf1bb8-3922-4655-ac1f-6ab2de9bc19a", "label": "GOAL\nCREATED\nsummarizer\n(5fcf1b)", "color": {"background": "#C8E6C9", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>summarizer</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"Create a concise summary of: No content\",\n  \"role\": \"summarization_specialist\",\n  \"tools_available\": [\n    \"summarize_content\"\n  ],\n  \"timestamp\": 1773850627.2860699\n}</pre>"}, {"id": "43dbbd9e-9917-4d0b-ac5f-30b2d1effa86", "label": "REASONING\nSTEP\nsummarizer\n(43dbbd)", "color": {"background": "#E8F4F8", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>summarizer</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Create a concise summary of: No content\",\n  \"available_tools\": [\n    \"summarize_content\"\n  ]\n}</pre>"}, {"id": "b95e6749-85d9-4c71-9fb0-0c5a88d9870a", "label": "GOAL\nFAILED\nsummarizer\n(b95e67)", "color": {"background": "#FFCDD2", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_FAILED</b><br><small>summarizer</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"reason\": \"llm_error\",\n  \"error\": \"[Errno -3] Temporary failure in name resolution\"\n}</pre>"}, {"id": "7cf8cfa3-a808-40f4-b3a7-a0aa5bc75adb", "label": "GOAL\nCREATED\nclassifier\n(7cf8cf)", "color": {"background": "#C8E6C9", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_CREATED</b><br><small>classifier</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"goal\": \"Classify this content: machine learning content\",\n  \"role\": \"document_classifier\",\n  \"tools_available\": [\n    \"classify_document\"\n  ],\n  \"timestamp\": 1773850627.3020604\n}</pre>"}, {"id": "597d7e39-d538-4df3-a119-f93764d772fd", "label": "REASONING\nSTEP\nclassifier\n(597d7e)", "color": {"background": "#E8F4F8", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "box", "font": {"size": 11, "color": "#333"}, "title": "<b>REASONING_STEP</b><br><small>classifier</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"step\": \"analyze_goal\",\n  \"goal\": \"Classify this content: machine learning content\",\n  \"available_tools\": [\n    \"classify_document\"\n  ]\n}</pre>"}, {"id": "a1e92a63-e906-435c-ad17-49c467b85d8b", "label": "GOAL\nFAILED\nclassifier\n(a1e92a)", "color": {"background": "#FFCDD2", "border": "#999", "highlight": {"background": "#fff9c4", "border": "#f9a825"}}, "borderWidth": 2, "borderDashes": false, "shape": "ellipse", "font": {"size": 11, "color": "#333"}, "title": "<b>GOAL_FAILED</b><br><small>classifier</small><pre style='font-size:10px;max-width:280px;white-space:pre-wrap'>{\n  \"reason\": \"llm_error\",\n  \"error\": \"[Errno -3] Temporary failure in name resolution\"\n}</pre>"}]);
+var edges = new vis.DataSet([{"from": "5fcf1bb8-3922-4655-ac1f-6ab2de9bc19a", "to": "43dbbd9e-9917-4d0b-ac5f-30b2d1effa86", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "5e2397b2-2a6a-4778-a27e-f1689ef956f1", "to": "231cddf8-47d8-47b6-a61f-db019cd873dd", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "d38d0295-ecb5-4de1-b9cb-cf9d8d92d8d0", "to": "26c1a715-b591-4fcb-b435-758106e0df94", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "7c23317e-6d58-4853-a5aa-a3282883916e", "to": "d38d0295-ecb5-4de1-b9cb-cf9d8d92d8d0", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "597d7e39-d538-4df3-a119-f93764d772fd", "to": "a1e92a63-e906-435c-ad17-49c467b85d8b", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "43dbbd9e-9917-4d0b-ac5f-30b2d1effa86", "to": "b95e6749-85d9-4c71-9fb0-0c5a88d9870a", "label": "intra_agent_sequence", "color": {"color": "#4ECDC4", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "7cf8cfa3-a808-40f4-b3a7-a0aa5bc75adb", "to": "597d7e39-d538-4df3-a119-f93764d772fd", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}, {"from": "cddae53b-e373-487a-8cb2-8b2053ac2f9d", "to": "5e2397b2-2a6a-4778-a27e-f1689ef956f1", "label": "inferred_by_proximity", "color": {"color": "#95E1D3", "opacity": 0.8}, "arrows": "to", "width": 2, "font": {"size": 9, "color": "#888", "background": {"enabled": true, "color": "white"}}, "smooth": {"type": "continuous", "roundness": 0.4}}]);
 
-        function downloadPNG() {
-            network.once("afterDrawing", function(ctx) {
-                var scaleFactor = 2; // higher resolution
-                var canvas = ctx.canvas;
+var network = new vis.Network(
+    document.getElementById('network'),
+    {nodes, edges},
+    {
+        physics:{enabled:true,stabilization:{iterations:300,fit:true},
+                  barnesHut:{gravitationalConstant:-28000,centralGravity:0.25,springLength:180}},
+        nodes:{shadow:{enabled:true,color:'rgba(0,0,0,.15)',size:8,x:4,y:4}},
+        edges:{arrows:{to:{enabled:true,scaleFactor:1.2}},
+               shadow:{enabled:true,color:'rgba(0,0,0,.08)',size:4,x:2,y:2}},
+        interaction:{hover:true,tooltipDelay:100},
+    }
+);
 
-                var exportCanvas = document.createElement("canvas");
-                exportCanvas.width = canvas.width * scaleFactor;
-                exportCanvas.height = canvas.height * scaleFactor;
+// Build timeline
+document.getElementById('eventList').innerHTML = timelineData.map((e,i) =>
+    `<div class="event-item" id="ei-${e.id}" onclick="selectById('${e.id}')">
+        <span class="event-ts">+${e.rel_ts}s</span>
+        <div class="event-type">${i+1}. ${e.type}</div>
+        <div><span class="agent-badge ${AGENT_CLASS[e.agent]||''}">${e.agent}</span></div>
+    </div>`
+).join('');
 
-                var exportCtx = exportCanvas.getContext("2d");
-                exportCtx.scale(scaleFactor, scaleFactor);
-                exportCtx.drawImage(canvas, 0, 0);
+function selectById(shortId) {
+    var ev = allEvents.find(e => e.event_id.startsWith(shortId));
+    if (!ev) return;
+    document.querySelectorAll('.event-item').forEach(el => el.classList.remove('selected'));
+    var el = document.getElementById('ei-' + shortId);
+    if (el) { el.classList.add('selected'); el.scrollIntoView({block:'nearest'}); }
 
-                var link = document.createElement("a");
-                link.href = exportCanvas.toDataURL("image/png");
-                link.download = "causal_dag_highres.png";
+    var hasGap = ev.event_type === 'TOOL_INVOKED' &&
+        JSON.stringify(ev.payload.params||{}).includes('<');
+    var gapHtml = hasGap
+        ? `<div class="gap-warning">⚠️ <b>Reasoning-execution gap:</b> LLM passed placeholder values.
+           Real objects were injected from pipeline state. The DAG records what the agent
+           <i>said</i> it would do, not what was actually passed.</div>` : '';
 
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
+    document.getElementById('eventInfo').innerHTML =
+        `<b>${ev.event_type}</b> &nbsp;·&nbsp;
+         <span class="agent-badge ${AGENT_CLASS[ev.agent_id]||''}">${ev.agent_id}</span><br>
+         <small style="color:#aaa">t = ${ev.timestamp.toFixed(3)}</small>
+         ${gapHtml}
+         <pre>${JSON.stringify(ev.payload, null, 2).substring(0, 600)}</pre>`;
 
-            network.redraw();
-        }
+    network.selectNodes([ev.event_id]);
+    network.focus(ev.event_id, {scale:1.1, animation:true});
 
-        // Click on node to show details
-        network.on('click', function(params) {
-            if (params.nodes.length > 0) {
-                var nodeId = params.nodes[0];
-                selectEvent(nodeId.substring(0, 8));
-            }
-        });
-    </script>
+    // Dim unrelated edges
+    var connected = network.getConnectedEdges(ev.event_id);
+    var allIds = edges.getIds();
+    edges.update(allIds.map(id => ({id, color: {opacity: connected.includes(id) ? 1.0 : 0.15}})));
+    network.once('blurNode', () =>
+        edges.update(allIds.map(id => ({id, color: {opacity: 0.8}})))
+    );
+}
+
+network.on('click', p => {
+    if (p.nodes.length) selectById(p.nodes[0].substring(0, 8));
+});
+
+var handoffsOn = false;
+function toggleHandoffs() {
+    handoffsOn = !handoffsOn;
+    if (handoffsOn) edges.add(handoffEdges);
+    else            edges.remove(handoffEdges.map(e => e.id));
+}
+function zoomIn()       { network.setOptions({physics:false}); network.moveTo({scale: network.getScale()*1.2}); }
+function zoomOut()      { network.setOptions({physics:false}); network.moveTo({scale: network.getScale()/1.2}); }
+function fitToScreen()  { network.fit({animation:true}); }
+function resetPhysics() { network.setOptions({physics:{enabled:true}}); network.stabilize(); }
+function downloadPNG()  {
+    network.once('afterDrawing', ctx => {
+        var c = ctx.canvas, ex = document.createElement('canvas');
+        ex.width = c.width*2; ex.height = c.height*2;
+        var x = ex.getContext('2d'); x.scale(2,2); x.drawImage(c,0,0);
+        var a = document.createElement('a');
+        a.href = ex.toDataURL('image/png'); a.download = 'spectra_dag.png'; a.click();
+    });
+    network.redraw();
+}
+</script>
 </body>
 </html>

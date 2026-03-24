@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-03-24T09:55:29.677551",
+  "total_hallucinations": 1,
+  "by_type": {
+    "CONFIDENCE": 1
+  },
+  "by_severity": {
+    "MEDIUM": 1
+  },
+  "hallucinations": [
+    {
+      "hallucination_id": "cc1f3d0d-e94a-41dc-b81f-ba22590814b6",
+      "type": "CONFIDENCE",
+      "severity": "MEDIUM",
+      "agent": "classifier",
+      "confidence": 0.65,
+      "description": "Agent made decision with low confidence (0.65)",
+      "evidence": {
+        "decision": null,
+        "confidence_score": 0.65,
+        "threshold": 0.7
+      },
+      "timestamp": "2026-03-24T09:55:29.519333",
+      "facility": "cloud"
+    }
+  ],
+  "risk_level": "LOW"
+}

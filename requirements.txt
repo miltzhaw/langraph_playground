@@ -14,3 +14,16 @@ requests>=2.31.0
 langchain-ollama>=0.1.0
 pdfplumber 
 wordninja
+
+# NEW: Flowcept + PROV
+
+prov[rdf]
+rdflib
+flowcept[llm_agent,mongo,extras]
+# NEW: Supporting libraries
+pymongo
+redis
+kafka-python
+# NEW: For PROV-AGENT MCP integration
+mcp
+anthropic

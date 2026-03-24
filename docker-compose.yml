@@ -8,6 +8,8 @@ services:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
+    networks:
+      - spectra-network
 
   postgres:
     image: postgres:15-alpine
@@ -26,6 +28,46 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - spectra-network
+
+  # Redis (NEW - for Flowcept MQ)
+  spectra-redis:
+    image: redis:7-alpine
+    container_name: spectra-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - spectra-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # MongoDB (NEW - for Flowcept DB)
+  spectra-mongodb:
+    image: mongo:7
+    container_name: spectra-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: flowcept
+      MONGO_INITDB_ROOT_PASSWORD: flowcept_password
+      MONGO_INITDB_DATABASE: flowcept_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - spectra-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 
   app:
     build: .
@@ -33,7 +75,11 @@ services:
     depends_on:
       - ollama
       - postgres
+      - spectra-redis
+      - spectra-mongodb
     environment:
+      PYTHONUNBUFFERED: 1
+      FLOWCEPT_SETTINGS_PATH: /app/.flowcept/settings.yaml
       POSTGRES_USER: spectra
       POSTGRES_PASSWORD: spectra_dev
       POSTGRES_DB: spectra
@@ -41,9 +87,18 @@ services:
       POSTGRES_PORT: 5432
       OLLAMA_HOST: http://ollama:11434
       OLLAMA_MODEL: mistral
+      REDIS_HOST: spectra-redis
+      REDIS_PORT: 6379
+      MONGODB_URI: mongodb://flowcept:flowcept_password@spectra-mongodb:27017/flowcept  
     volumes:
       - .:/app
+      - flowcept_data:/app/.flowcept
       - /app/__pycache__
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    networks:
+      - spectra-network
     working_dir: /app
     command: /bin/bash
     stdin_open: true
@@ -52,3 +107,10 @@ services:
 volumes:
   ollama_data:
   postgres_data:
+  redis_data:
+  mongodb_data:
+  flowcept_data:
+
+networks:
+  spectra-network:
+    driver: bridge

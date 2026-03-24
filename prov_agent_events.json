@@ -1,0 +1,145 @@
+[
+  {
+    "event_id": "1774346129.5192862",
+    "event_type": "TOOL_INVOCATION",
+    "timestamp": "2026-03-24T09:55:29.519286",
+    "agent": {
+      "agent_name": "analyzer",
+      "agent_role": "content_analyzer",
+      "model_name": "Mistral-7B",
+      "model_version": "1.0",
+      "confidence": 0.95,
+      "prompt": null,
+      "response": null,
+      "tool_name": null,
+      "tool_schema": null,
+      "tool_inputs": null,
+      "tool_outputs": null,
+      "facility_type": "cloud",
+      "facility_location": "aws-us-east",
+      "hallucination_flags": []
+    },
+    "activity": {
+      "activity_id": "search_documents",
+      "workflow_id": "c2c5f19f-4ce7-48f6-b964-6ecb8e3556ff",
+      "used": {
+        "arg_0": "machine learning"
+      },
+      "generated": {
+        "arg_0": [
+          {
+            "id": "doc_001",
+            "title": "ML Basics",
+            "content": "Introduction to ML"
+          },
+          {
+            "id": "doc_002",
+            "title": "Deep Learning",
+            "content": "Deep learning architectures"
+          },
+          {
+            "id": "doc_003",
+            "title": "Neural Networks",
+            "content": "Neural network basics"
+          }
+        ]
+      },
+      "status": "FINISHED",
+      "duration": 8.106231689453125e-06
+    },
+    "facility": {
+      "type": "cloud",
+      "location": "us-east"
+    }
+  },
+  {
+    "event_id": "1774346129.5193193",
+    "event_type": "REASONING_STEP",
+    "timestamp": "2026-03-24T09:55:29.519319",
+    "agent": {
+      "agent_name": "summarizer",
+      "agent_role": "summarization_specialist",
+      "model_name": "Mistral-7B",
+      "model_version": "1.0",
+      "confidence": 0.75,
+      "prompt": null,
+      "response": null,
+      "tool_name": null,
+      "tool_schema": null,
+      "tool_inputs": null,
+      "tool_outputs": null,
+      "facility_type": "cloud",
+      "facility_location": "aws-us-east",
+      "hallucination_flags": []
+    },
+    "activity": {
+      "activity_id": "summarize_content",
+      "workflow_id": "c2c5f19f-4ce7-48f6-b964-6ecb8e3556ff",
+      "used": {
+        "arg_0": [
+          {
+            "id": "doc_001",
+            "title": "ML Basics",
+            "content": "Introduction to ML"
+          },
+          {
+            "id": "doc_002",
+            "title": "Deep Learning",
+            "content": "Deep learning architectures"
+          },
+          {
+            "id": "doc_003",
+            "title": "Neural Networks",
+            "content": "Neural network basics"
+          }
+        ]
+      },
+      "generated": {
+        "arg_0": "Found 3 documents about: ML Basics, Deep Learning, Neural Networks"
+      },
+      "status": "FINISHED",
+      "duration": 4.76837158203125e-06
+    },
+    "facility": {
+      "type": "cloud",
+      "location": "us-east"
+    }
+  },
+  {
+    "event_id": "1774346129.5193334",
+    "event_type": "REASONING_STEP",
+    "timestamp": "2026-03-24T09:55:29.519333",
+    "agent": {
+      "agent_name": "classifier",
+      "agent_role": "document_classifier",
+      "model_name": "Mistral-7B",
+      "model_version": "1.0",
+      "confidence": 0.65,
+      "prompt": null,
+      "response": null,
+      "tool_name": null,
+      "tool_schema": null,
+      "tool_inputs": null,
+      "tool_outputs": null,
+      "facility_type": "cloud",
+      "facility_location": "aws-us-east",
+      "hallucination_flags": []
+    },
+    "activity": {
+      "activity_id": "classify_document",
+      "workflow_id": "c2c5f19f-4ce7-48f6-b964-6ecb8e3556ff",
+      "used": {
+        "arg_0": "Found 3 documents about: ML Basics, Deep Learning, Neural Networks"
+      },
+      "generated": {
+        "arg_0": "Technology / Machine Learning / Deep Learning"
+      },
+      "status": "FINISHED",
+      "duration": 2.6226043701171875e-06
+    },
+    "facility": {
+      "type": "cloud",
+      "location": "us-east"
+    }
+  }
+]

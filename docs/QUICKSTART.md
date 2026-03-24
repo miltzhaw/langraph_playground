@@ -1,353 +1,277 @@
 # SPECTRA Quick Start
 
-## Run All Examples
+## Prerequisites
+
+- Docker & Docker Compose installed
+- Ports `8000`, `8501`, `5432`, `6379`, `11435`, `27017` free on your host
+
+---
+
+## 1. Start All Services
 
 ```bash
-docker-compose up
+docker-compose up -d
 ```
 
-In another terminal:
+This starts: `spectra-app`, `spectra-ollama`, `spectra-postgres`, `spectra-redis`, `spectra-mongodb`.
+
+### Download Mistral (one-time, ~5 minutes)
 
 ```bash
-# Example 1: Single agent
-docker exec spectra-app python examples/01_simple_agent.py
-
-# Example 2: Two agents
-docker exec spectra-app python examples/02_two_agents.py
-
-# Example 3: Three-agent cascade
-docker exec spectra-app python examples/03_delegation.py
-
-# Example 4: Reconstruct DAG
-docker exec spectra-app python examples/04_reconstruct.py
-
-# Example 5: Failure detection
-docker exec spectra-app python examples/05_failure_detection.py
-
-# Example 6: Ablation study
-docker exec spectra-app python examples/06_ablation_study.py
-
-# Example 7: Store in PostgreSQL
-docker exec spectra-app python examples/07_store_in_postgres.py
-
-# Example 8: Visualize DAG (Interactive & Static)
-docker exec spectra-app python examples/08_visualize.py
+docker exec spectra-app ollama pull mistral
+docker exec spectra-app ollama list   # confirm: mistral:latest listed
 ```
 
-## View Interactive Visualization
+---
 
-After running example 08, view the beautiful interactive DAG:
+## 2. Run Examples
+
+### Phase 1–2: Synthetic proof-of-concept
 
 ```bash
-# Copy HTML to local machine
-docker cp spectra-app:/app/dag_interactive.html ./
-
-# Open in browser
-open dag_interactive.html  # macOS
-xdg-open dag_interactive.html  # Linux
-start dag_interactive.html  # Windows
+docker exec spectra-app python examples/01_simple_agent.py       # 1 agent, 3 events
+docker exec spectra-app python examples/02_two_agents.py         # 2 agents, delegation
+docker exec spectra-app python examples/03_delegation.py         # 3-agent cascade
+docker exec spectra-app python examples/04_reconstruct.py        # DAG reconstruction
+docker exec spectra-app python examples/05_failure_detection.py  # failure propagation
+docker exec spectra-app python examples/06_ablation_study.py     # minimal telemetry study
+docker exec spectra-app python examples/07_store_in_postgres.py  # PostgreSQL persistence
+docker exec spectra-app python examples/08_visualize.py          # HTML + Mermaid + Graphviz
 ```
 
-## Verify Database
+### Phase 3: Realistic LLM workflows (requires Mistral)
 
-After running example 07, verify data was persisted:
+```bash
+docker exec spectra-app python examples/11_realistic_with_visualization.py
+docker exec spectra-app python examples/12_research_paper_analysis.py papers/paper.pdf
+```
+
+### Phase 4: Full PROV-AGENT provenance (primary example)
+
+```bash
+docker exec spectra-app python examples/14_prov_research_paper_analysis.py papers/paper.pdf
+```
+
+This generates:
+- `/app/flowcept_buffer.jsonl` — raw Flowcept events (GUI data source)
+- `/app/prov_agent_research_paper.json` — grouped PROV-AGENT export
+- `/app/research_paper_prov_agent_interactive.html` — standalone DAG visualisation
+
+---
+
+## 3. Launch the PROV-AGENT GUI
+
+Always `cd /app` before launching so relative file paths resolve correctly:
+
+```bash
+docker exec spectra-app bash -c \
+  "cd /app && streamlit run visualization/prov_agent_gui.py \
+   --server.port 8501 --server.address 0.0.0.0"
+```
+
+Open **http://localhost:8501** in your browser.
+
+### Run pipeline + GUI in one shot
+
+```bash
+docker exec spectra-app bash -c \
+  "cd /app && \
+   python examples/14_prov_research_paper_analysis.py papers/paper.pdf && \
+   streamlit run visualization/prov_agent_gui.py \
+   --server.port 8501 --server.address 0.0.0.0"
+```
+
+### Run GUI in background (persists after shell closes)
+
+```bash
+docker exec -d spectra-app bash -c \
+  "cd /app && streamlit run visualization/prov_agent_gui.py \
+   --server.port 8501 --server.address 0.0.0.0"
+```
+
+---
+
+## 4. Using the GUI
+
+The GUI has four tabs. It reads from `flowcept_buffer.jsonl` by default. The sidebar lets you change this path if your file is elsewhere.
+
+### Tab 1 — Provenance Graph 🕸️
+
+An interactive D3-force graph of the full PROV-AGENT model for the last pipeline run.
+
+**Node types:**
+
+| Colour | Shape | PROV-AGENT class | Flowcept subtype |
+|--------|-------|-----------------|-----------------|
+| Dark blue (large) | Circle | Workflow | — |
+| Blue (medium) | Circle | AgentTool | `agent_task` |
+| Green (small) | Circle | AIModelInvocation | `llm_task` |
+| Grey (smallest) | Circle | Task | `task` |
+
+**Edge types:**
+
+| Colour | Relationship | Meaning |
+|--------|-------------|---------|
+| Green | `wasInformedBy` | An AgentTool was informed by an LLM call, or one AgentTool followed another |
+| Grey | `hadMember` | The Workflow contains this AgentTool |
+
+**What to look for:**
+
+- Each blue AgentTool node should have a green `wasInformedBy` arrow pointing to a green LLM node. This confirms that Flowcept successfully linked the Mistral call to its enclosing agent task.
+- The dark blue Workflow node at the centre connects to all AgentTool nodes via `hadMember` edges.
+- If a green LLM node is floating disconnected, `parent_task_id` was not set — the `_make_flowcept_llm()` helper did not fire correctly.
+
+**Interactions:**
+
+- **Hover** any node to see a tooltip with agent ID, status, duration, inputs, and outputs (or prompt/response snippet for LLM nodes).
+- **Drag** nodes to rearrange the layout.
+- **Scroll** to zoom in/out. The whole graph pans with click-and-drag on empty space.
+- Expand **Raw graph JSON** at the bottom to inspect the exact node and link data.
+
+---
+
+### Tab 2 — Causal DAG 📊
+
+Embeds the `research_paper_prov_agent_interactive.html` file generated by Example 14. This is the legacy SPECTRA causal DAG (based on the event collector, not Flowcept), showing GOAL_CREATED → REASONING_STEP → GOAL_FAILED chains.
+
+If the HTML file is not found, the tab rebuilds the DAG from any `event_type` records present in the JSONL buffer.
+
+**What to look for:**
+
+- The DAG shows the four agents (`ingestion_agent`, `analysis_agent`, `citation_agent`, `synthesis_agent`) and their intra-agent reasoning sequences.
+- Edges labelled `intra_agent_sequence` connect consecutive events within the same agent.
+- Edges labelled `inferred_by_proximity` fill gaps where explicit delegation was not recorded.
+- `GOAL_FAILED` nodes (if present) are highlighted — these indicate that the legacy collector recorded a failure; the PROV-AGENT records in Tab 1 may still show `FINISHED` because the pipeline has a direct fallback path.
+
+---
+
+### Tab 3 — Hallucination Report ⚠️
+
+Runs the `ProvAgentHallucinationDetector` over all `agent_task` records and displays confidence-based risk analysis.
+
+**Header metrics:**
+
+| Metric | What it means |
+|--------|--------------|
+| Overall Risk | Aggregate risk level: LOW / MEDIUM / HIGH / CRITICAL |
+| Total Hallucinations | Number of flagged events |
+| Agent Tools Analyzed | Count of `agent_task` records inspected |
+| (4th metric) | Risk breakdown by severity |
+
+**Confidence scores table:**
+
+Each AgentTool is listed with its confidence score (0–1), status, and duration. The `Confidence` column uses a red–yellow–green colour gradient. Confidence is read from `custom_metadata.confidence` in the Flowcept record; if not set it defaults to 0.8.
+
+- Scores below ~0.7 are shaded orange/red and are candidates for hallucination flags.
+- In Example 14 with Mistral via OllamaLLM, confidence is not directly exposed by the model, so you will typically see the default 0.8 for all tools unless your `MistralAgent` explicitly sets it.
+
+**Detected hallucinations table:**
+
+If any events are flagged, they appear here with Type, Severity, Agent, Confidence, and a description. Severity colours: CRITICAL (dark red) → HIGH (red) → MEDIUM (orange) → LOW (green). Expand **Full hallucination evidence (JSON)** to see the raw detector output.
+
+---
+
+### Tab 4 — Provenance Chat 💬
+
+A natural-language interface for querying the provenance data.
+
+**How it works:**
+
+The tab displays a flat DataFrame of all Flowcept records (all subtypes), then provides a chat input. If `ANTHROPIC_API_KEY` is set as an environment variable in the container, queries are answered by Claude (claude-sonnet) with the DataFrame schema and first 10 rows as context. Without the key it falls back to a keyword-based rule engine.
+
+**Quick-query buttons:**
+
+| Button | What it returns |
+|--------|----------------|
+| Which AgentTool took the longest? | Activity name + duration |
+| List all LLM model invocations | Table of llm_task records with model name, duration, parent |
+| Show the wasInformedBy relationships | List of AgentTool → AIModelInvocation links |
+| What was the overall workflow status? | Workflow IDs + status breakdown |
+
+**Useful questions to ask:**
+
+- "What prompt was sent to the LLM during run_ingestion?"
+- "How long did run_analysis take compared to run_synthesis?"
+- "Which agent had the most LLM calls?"
+- "Are there any failed tasks?"
+
+**Full Flowcept Agent:** For richer queries (plot generation, pandas aggregations, provenance card exports), start the Flowcept MCP agent server (`flowcept --start-agent`) and open `http://localhost:8000`. This requires MongoDB to be running, which it is in the default `docker-compose.yml`.
+
+---
+
+## 5. Sidebar Controls
+
+| Control | Default | Purpose |
+|---------|---------|---------|
+| Flowcept JSONL buffer | `flowcept_buffer.jsonl` | Path to the raw event file. Change this if Example 14 wrote to a different location. |
+| PROV-AGENT JSON export | `prov_agent_research_paper.json` | Path to the grouped export. Currently informational — not consumed by any tab. |
+| Auto-refresh (10s) | Off | When enabled, the page reloads every 10 seconds. Useful when a pipeline is running in parallel. |
+
+The colour legend at the bottom of the sidebar shows the four node subtypes.
+
+---
+
+## 6. Copy Outputs from Docker
+
+```bash
+# Interactive DAG (standalone HTML)
+docker cp spectra-app:/app/research_paper_prov_agent_interactive.html ./
+
+# PROV-AGENT grouped export
+docker cp spectra-app:/app/prov_agent_research_paper.json ./
+
+# Raw Flowcept buffer
+docker cp spectra-app:/app/flowcept_buffer.jsonl ./
+
+# Graphviz dot file (render with: dot -Tpng file.dot -o file.png)
+docker cp spectra-app:/app/research_paper_prov_agent.dot ./
+```
+
+---
+
+## 7. Verify Database (PostgreSQL)
+
+After running any of Examples 1–12:
 
 ```bash
 docker exec -it spectra-postgres psql -U spectra -d spectra_db
+```
 
-# Inside psql:
-SELECT count(*) FROM semantic_events;  -- Should show 9
-SELECT count(*) FROM causal_edges;     -- Should show 8
+```sql
+SELECT count(*) FROM semantic_events;   -- 9 after example 07
+SELECT count(*) FROM causal_edges;      -- 8 after example 07
 SELECT event_type, agent_id FROM semantic_events ORDER BY timestamp LIMIT 10;
 \q
 ```
 
-Expected: 9 events, 8 edges, cascading delegation pattern visible in output.
-
 ---
 
-# SPECTRA Evaluation Results
+## Evaluation Results Summary
 
-## Executive Summary
+### Synthetic scenarios (Examples 1–6)
 
-We demonstrate that **semantic causal trace reconstruction** can accurately reconstruct multi-agent coordination chains using minimal instrumentation. This document summarizes initial validation results.
+| Scenario | Events | Edges | Accuracy |
+|----------|--------|-------|----------|
+| 2-agent delegation | 5 | 4 | 80% |
+| 3-agent cascade | 9 | 8 | 100% |
+| Failure propagation | 7 | 5 | 100% detection |
 
----
-
-## Scenarios Evaluated
-
-### 1. Simple Delegation (2 agents, 1 level)
-- **Events collected:** 5
-- **Causal edges reconstructed:** 4
-- **Agents involved:** agent_a (orchestrator), agent_b (worker)
-- **Coordination pattern:** Sequential delegation
-
-**Trace:**
-```
-agent_a: REASONING_STEP → GOAL_DELEGATED
-         ↓
-agent_b: REASONING_STEP → REASONING_STEP
-         ↓
-agent_a: REASONING_STEP
-```
-
----
-
-### 2. Cascading Delegation (3 agents, 2 levels)
-- **Events collected:** 9
-- **Causal edges reconstructed:** 8
-- **Agents involved:** agent_a (orchestrator), agent_b (intermediate), agent_c (worker)
-- **Coordination pattern:** Hierarchical delegation chain
-
-**Trace:**
-```
-agent_a: REASONING_STEP → GOAL_DELEGATED (to B)
-         ↓
-agent_b: REASONING_STEP → GOAL_DELEGATED (to C)
-         ↓
-agent_c: REASONING_STEP → REASONING_STEP → REASONING_STEP
-         ↓
-agent_b: REASONING_STEP
-         ↓
-agent_a: REASONING_STEP
-```
-
-**Reconstruction Accuracy:** 100% (8/8 edges recovered)
-
----
-
-### 3. Failure Propagation (Tool Error in Agent B)
-- **Events collected:** 7
-- **Causal edges reconstructed:** 5
-- **Failure event:** TOOL_INVOKED (wrong params) → GOAL_FAILED
-- **Failure detection:** ✅ Correctly identified and traced
-
-**Analysis:**
-- Failure detected at: agent_b
-- Propagation path: agent_b (TOOL_INVOKED) → agent_b (GOAL_FAILED)
-- Affected agents: 1 (agent_b)
-- Root cause identified: Invalid tool parameters
-
-**Trace:**
-```
-agent_a: REASONING_STEP → REASONING_STEP
-         ↓
-agent_b: REASONING_STEP → TOOL_INVOKED (INVALID_SYNTAX!!!) → GOAL_FAILED
-         ↓
-agent_a: REASONING_STEP → REASONING_STEP (cleanup)
-```
-
----
-
-## Ablation Study: Minimal Telemetry Requirements
-
-**Question:** Which event types are essential for ≥80% reconstruction accuracy?
-
-### Results
+### Ablation study (Example 6)
 
 | Configuration | Events | Edges | Accuracy |
-|---|---|---|---|
-| **BASELINE (all events)** | 9 | 8 | **100%** |
-| WITHOUT GOAL_DELEGATED | 7 | 4 | 25% |
-| WITHOUT REASONING_STEP | 2 | 1 | 0% |
+|---------------|--------|-------|----------|
+| All events | 9 | 8 | 100% |
+| Without GOAL_DELEGATED | 7 | 4 | 25% |
+| Without REASONING_STEP | 2 | 1 | 0% |
 
-### Finding
+**Finding:** Both event types are essential. Minimum viable telemetry = `GOAL_DELEGATED + REASONING_STEP`.
 
-**Both event types are essential:**
+### PROV-AGENT pipeline (Example 14)
 
-- **GOAL_DELEGATED**: Establishes cross-agent causal edges (delegation rules)
-  - Removing it drops accuracy 75% (8→4 edges lost)
-  - Critical for multi-agent coordination tracing
-
-- **REASONING_STEP**: Establishes intra-agent causal sequences
-  - Removing it drops accuracy 100% (loses all reasoning chains)
-  - Critical for agent-level diagnostics
-
-**Minimal telemetry set:** 2 event types (GOAL_DELEGATED + REASONING_STEP)
-
----
-
-## Causal Reconstruction Rules
-
-We apply three explicit rules to build the causal DAG:
-
-### Rule 1: Delegation
-```
-GOAL_DELEGATED(agent_a → agent_b) → next event in agent_b
-```
-Establishes cross-agent causality when agent A delegates to agent B.
-
-### Rule 2: Intra-Agent Sequence
-```
-REASONING_STEP(agent_x, t1) → REASONING_STEP(agent_x, t2) where t1 < t2
-```
-Chains consecutive reasoning steps within the same agent.
-
-### Rule 3: Gap Completion (Proximity Heuristic)
-```
-event(agent_x, t1) → event(agent_x, t2) where |t2 - t1| < Δt_threshold
-```
-Fills gaps in disconnected components using timestamp proximity.
-
----
-
-## Key Findings
-
-### ✅ Reconstruction Accuracy
-- **Cascading delegation (3 agents):** 100% (8/8 edges)
-- **Simple delegation (2 agents):** 80% (4/5 edges)
-- **Failure scenarios:** 100% failure event detection
-
-### ✅ Failure Propagation
-- Correctly traces failure from TOOL_INVOKED → GOAL_FAILED
-- Identifies affected agents
-- Provides root-cause chain
-
-### ✅ Minimal Instrumentation
-- Only 2 event types required (GOAL_DELEGATED, REASONING_STEP)
-- No LLM-based inference needed (deterministic reconstruction)
-- Auditable and transparent
-
----
-
-## Limitations
-
-### Current Scope
-- **Framework:** LangGraph only (proof-of-concept)
-- **Coordination patterns:** Delegation, hierarchical (parallel tasks partially supported)
-- **Failure types:** Tool invocation errors, missing delegations
-- **Scale:** 3 agents, <10 events (synthetic scenarios)
-
-### Not Yet Implemented
-- Implicit causality inference (shared state, side effects)
-- Privacy-preserving content filtering
-- Real LLM-based agent execution
-- Production-scale deployment
-- Cross-organizational coordination
-
----
-
-## Implications for SPECTRA Proposal
-
-1. **Formal Model Validated:** The semantic trace model (T = (E, A, →, λ)) is implementable and works in practice.
-
-2. **Minimality Quantified:** Ablation study proves that explicit event types (GOAL_DELEGATED, REASONING_STEP) are sufficient for ≥80% reconstruction accuracy.
-
-3. **Deterministic Reconstruction:** Three rules are sufficient for explicit causality without requiring LLM-based inference.
-
-4. **Failure Detection:** Reconstructed traces enable root-cause analysis and failure propagation tracing.
-
-5. **Generalization Path:** Proof-of-concept on LangGraph provides foundation for extending to other frameworks (AutoGen, Crew AI, etc.).
-
----
-
-## Next Steps
-
-### Phase 3 (Controlled Evaluation)
-- [ ] Expand to 4+ synthetic scenarios
-- [ ] Systematically inject 3-5 failure types
-- [ ] Measure reconstruction accuracy across scenarios
-- [ ] Compare against baseline (OpenTelemetry logs)
-- [ ] Measure inspection depth improvement (30% target)
-
-### Phase 4 (Follow-On Research)
-- [ ] Extend to additional frameworks (AutoGen, Crew AI)
-- [ ] Implement privacy-preserving content filtering
-- [ ] Add support for implicit causality inference
-- [ ] Deploy on enterprise multi-agent workflows
-- [ ] Cross-organizational agent coordination
-
----
-
-## Metrics Summary
-
-| Metric | Value | Target |
-|---|---|---|
-| Cascading delegation accuracy | 100% | ≥80% ✅ |
-| Minimal event types | 2 | ≤5 ✅ |
-| Failure detection rate | 100% | ≥90% ✅ |
-| Reconstruction time | <10ms | <100ms ✅ |
-| False positives (failure scenario) | 0 | Low ✅ |
-
----
-
-## Conclusion
-
-Initial evaluation demonstrates that **semantic causal trace reconstruction is feasible and effective** for LLM-based multi-agent systems. The formal model maps to working implementation, minimal telemetry requirements are quantified, and failure detection works in practice.
-
-These results validate the core claims of the SPECTRA proposal and provide a foundation for scaled evaluation and deployment.
-
-
-## Phase 3: Realistic Scenarios (NEW!)
-
-### Setup Mistral LLM
-```bash
-# Start services
-docker-compose up
-
-# Download Mistral (one-time, takes ~5 minutes)
-docker exec spectra-app ollama pull mistral
-
-# Verify it worked
-docker exec spectra-app ollama list
-```
-
-### Run Realistic Scenario with Visualization
-```bash
-# Example 11: Full realistic scenario with Mistral + visualizations
-docker exec spectra-app python examples/11_realistic_with_visualization.py
-
-# This generates:
-# - realistic_dag_interactive.html (interactive visualization)
-# - realistic_dag.dot (Graphviz format)
-# - realistic_dag.md (Mermaid diagram)
-# - realistic_dag_summary.md (event/edge statistics)
-```
-
-### View Interactive Visualization
-```bash
-# Copy to local machine
-docker cp spectra-app:/app/realistic_dag_interactive.html ./
-
-# Open in browser
-open realistic_dag_interactive.html  # macOS
-xdg-open realistic_dag_interactive.html  # Linux
-start realistic_dag_interactive.html  # Windows
-```
-
-You'll see:
-- 4 agents (coordinator, analyzer, summarizer, classifier)
-- 17 semantic events with full details
-- 13 causal edges showing the execution flow
-- Tool invocations and their results
-- Failure detection and tracing
-
-### All Phase 3 Examples
-
-| Example | Purpose | Duration |
-|---------|---------|----------|
-| 09 | Test LLM integration | ~5s |
-| 10 | Phase 1-2 vs Phase 3 comparison | ~120s |
-| 11 | Full realistic scenario with viz | ~90s |
-
-
-## Example 12: Research Paper Analysis
-
-Realistic academic workflow with 4 agents and failure handling.
-```bash
-docker exec spectra-app python examples/12_research_paper_analysis.py
-docker cp spectra-app:/app/research_paper_analysis_interactive.html ./
-open research_paper_analysis_interactive.html
-```
-
-**What happens**:
-1. Ingestion agent extracts paper metadata
-2. Analysis agent searches content and finds key results
-3. Citation agent validates citations (~10% fail)
-4. Synthesis agent compiles final report
-
-**Key features**:
-- Shows realistic failure modes
-- Demonstrates failure propagation
-- Generates 20+ events
-- Creates interactive visualization
+| Metric | Value |
+|--------|-------|
+| AgentTool records | 4 |
+| AIModelInvocation records | 4 |
+| wasInformedBy links | 4 |
+| Typical run duration (ingestion) | ~1.9s |
+| Typical run duration (analysis/citation/synthesis) | ~0.01–0.03s |
